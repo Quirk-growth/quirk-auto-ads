@@ -1,0 +1,25 @@
+# Tokens e credenciais
+*.token
+*api_key*
+*.env
+.env.*
+
+# Backups intermediários do Make (não relevantes daqui em diante)
+blueprint_v*.json
+blueprint_backup_*.json
+blueprint_MODIFICADO_*.json
+
+# OS
+.DS_Store
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# n8n exports (vão pra n8n_workflow/ via task específica)
+*.exported.json
+
+# Workflow ID (não versionar, é runtime state)
+n8n_workflow/.workflow_id

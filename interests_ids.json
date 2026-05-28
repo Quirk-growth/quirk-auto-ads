@@ -1,0 +1,1254 @@
+{
+  "generated_at": "2026-05-27T04:01:42.623902Z",
+  "api_version": "v25.0",
+  "data": {
+    "adinterest": {
+      "Travel": [
+        {
+          "id": "6003271483551",
+          "name": "Travel Blogger",
+          "audience_size_lower_bound": 14706340,
+          "audience_size_upper_bound": 17294657,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Travel Blogger"
+          ],
+          "description": null,
+          "disambiguation_category": "Site de locais e viagem",
+          "topic": "Travel, places and events"
+        },
+        {
+          "id": "6002950471174",
+          "name": "Travel insurance",
+          "audience_size_lower_bound": 7673707,
+          "audience_size_upper_bound": 9024280,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Travel insurance"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local",
+          "topic": "Hobbies and activities"
+        },
+        {
+          "id": "6013282572781",
+          "name": "Traveloka",
+          "audience_size_lower_bound": 7073647,
+          "audience_size_upper_bound": 8318610,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Traveloka"
+          ],
+          "description": null,
+          "disambiguation_category": "Site de locais e viagem",
+          "topic": "Travel, places and events"
+        }
+      ],
+      "Frequent travelers": [],
+      "Hotels": [
+        {
+          "id": "6004092124602",
+          "name": "Hotels.com (hospedagem)",
+          "audience_size_lower_bound": 20470680,
+          "audience_size_upper_bound": 24073520,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Hotels.com (hospedagem)"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003183450612",
+          "name": "Sheraton Hotels & Resorts",
+          "audience_size_lower_bound": 14451955,
+          "audience_size_upper_bound": 16995500,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Sheraton Hotels & Resorts"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003175076849",
+          "name": "Four Seasons Hotels and Resorts",
+          "audience_size_lower_bound": 9910646,
+          "audience_size_upper_bound": 11654920,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Four Seasons Hotels and Resorts"
+          ],
+          "description": null,
+          "topic": "Hobbies and activities"
+        }
+      ],
+      "Gated community": [
+        {
+          "id": "6003077334693",
+          "name": "Condomínio fechado (imóveis)",
+          "audience_size_lower_bound": 15939464,
+          "audience_size_upper_bound": 18744810,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Condomínio fechado (imóveis)"
+          ],
+          "description": null,
+          "topic": "Lifestyle and culture"
+        }
+      ],
+      "Single-family detached home": [
+        {
+          "id": "6003382467537",
+          "name": "Casa unifamiliar (imóveis)",
+          "audience_size_lower_bound": 19555085,
+          "audience_size_upper_bound": 22996780,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Casa unifamiliar (imóveis)"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        }
+      ],
+      "Real estate investing": [
+        {
+          "id": "6003446239080",
+          "name": "Investimento imobiliário (investimento)",
+          "audience_size_lower_bound": 97533199,
+          "audience_size_upper_bound": 114699043,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Investimento imobiliário (investimento)"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6002975543459",
+          "name": "Fundo de investimento imobiliário (investimento)",
+          "audience_size_lower_bound": 3662704,
+          "audience_size_upper_bound": 4307340,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Fundo de investimento imobiliário (investimento)"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local"
+        },
+        {
+          "id": "6003153932065",
+          "name": "investimento imobiliário criativo (imóveis)",
+          "audience_size_lower_bound": 1313041,
+          "audience_size_upper_bound": 1544137,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "investimento imobiliário criativo (imóveis)"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        }
+      ],
+      "Real estate": [
+        {
+          "id": "6002979192120",
+          "name": "Real Estate",
+          "audience_size_lower_bound": 2746028,
+          "audience_size_upper_bound": 3229330,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Real Estate"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local",
+          "topic": "News and entertainment"
+        },
+        {
+          "id": "6003258963709",
+          "name": "Century 21 Real Estate",
+          "audience_size_lower_bound": 1000249,
+          "audience_size_upper_bound": 1176293,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Century 21 Real Estate"
+          ],
+          "description": null,
+          "disambiguation_category": "Imobiliária",
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003077981446",
+          "name": "Better Homes and Gardens Real Estate",
+          "audience_size_lower_bound": 897746,
+          "audience_size_upper_bound": 1055750,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Better Homes and Gardens Real Estate"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        }
+      ],
+      "OLX Brasil": [
+        {
+          "id": "6002965402168",
+          "name": "OLX Brasil",
+          "audience_size_lower_bound": 12953103,
+          "audience_size_upper_bound": 15232850,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "OLX Brasil"
+          ],
+          "description": null,
+          "disambiguation_category": "Site",
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003053088645",
+          "name": "Online marketplace",
+          "audience_size_lower_bound": 19920705,
+          "audience_size_upper_bound": 23426750,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Online marketplace"
+          ],
+          "description": null,
+          "topic": "Shopping and fashion"
+        }
+      ],
+      "Zap Imóveis": [
+        {
+          "id": "6014552641654",
+          "name": "zap imóveis",
+          "audience_size_lower_bound": 2497806,
+          "audience_size_upper_bound": 2937420,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "zap imóveis"
+          ],
+          "description": null,
+          "disambiguation_category": "Imóvel",
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6788101567252",
+          "name": "Portais da web e anúncios de imóveis (sites)",
+          "audience_size_lower_bound": 850340,
+          "audience_size_upper_bound": 1000000,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Portais da web e anúncios de imóveis (sites)"
+          ],
+          "description": null,
+          "disambiguation_category": "Corretor de imóveis"
+        }
+      ],
+      "VivaReal": [],
+      "Real estate development": [
+        {
+          "id": "6003332796032",
+          "name": "Desenvolvimento imobiliário (imóveis)",
+          "audience_size_lower_bound": 53970340,
+          "audience_size_upper_bound": 63469120,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Desenvolvimento imobiliário (imóveis)"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6836751095756",
+          "name": "Desenvolvedores de imóveis (imóveis)",
+          "audience_size_lower_bound": 850340,
+          "audience_size_upper_bound": 1000000,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Desenvolvedores de imóveis (imóveis)"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local"
+        },
+        {
+          "id": "6009455630983",
+          "name": "CREDAI",
+          "audience_size_lower_bound": 150612,
+          "audience_size_upper_bound": 177120,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "CREDAI"
+          ],
+          "description": null
+        }
+      ],
+      "Construction": [
+        {
+          "id": "6003450906175",
+          "name": "Framing (construction)",
+          "audience_size_lower_bound": 11061147,
+          "audience_size_upper_bound": 13007910,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Framing (construction)"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003223792476",
+          "name": "Construction set",
+          "audience_size_lower_bound": 9828018,
+          "audience_size_upper_bound": 11557750,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Construction set"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003312092453",
+          "name": "Domestic roof construction",
+          "audience_size_lower_bound": 7287278,
+          "audience_size_upper_bound": 8569840,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Domestic roof construction"
+          ],
+          "description": null,
+          "disambiguation_category": "Local geográfico",
+          "topic": "Business and industry"
+        }
+      ],
+      "Investment": [
+        {
+          "id": "6003392721577",
+          "name": "Investment company",
+          "audience_size_lower_bound": 2174124,
+          "audience_size_upper_bound": 2556770,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Investment company"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local",
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003166425558",
+          "name": "Fidelity Investments",
+          "audience_size_lower_bound": 1886113,
+          "audience_size_upper_bound": 2218070,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Fidelity Investments"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local",
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6004101258209",
+          "name": "Bank for Investment and Development of Vietnam",
+          "audience_size_lower_bound": 1523826,
+          "audience_size_upper_bound": 1792020,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Bank for Investment and Development of Vietnam"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local",
+          "topic": "Business and industry"
+        }
+      ],
+      "International travel": [
+        {
+          "id": "6003430696269",
+          "name": "Turismo (indústria)",
+          "audience_size_lower_bound": 773164277,
+          "audience_size_upper_bound": 909241190,
+          "path": [
+            "Interesses",
+            "Viagem (viagem e turismo)",
+            "Turismo (indústria)"
+          ],
+          "description": "",
+          "topic": "Travel, places and events"
+        },
+        {
+          "id": "6003572379887",
+          "name": "Hotéis (hospedagem)",
+          "audience_size_lower_bound": 603371853,
+          "audience_size_upper_bound": 709565300,
+          "path": [
+            "Interesses",
+            "Viagem (viagem e turismo)",
+            "Hotéis (hospedagem)"
+          ],
+          "description": "",
+          "topic": "Hobbies and activities"
+        },
+        {
+          "id": "6003211401886",
+          "name": "Viagem aérea (transporte)",
+          "audience_size_lower_bound": 305795457,
+          "audience_size_upper_bound": 359615458,
+          "path": [
+            "Interesses",
+            "Viagem (viagem e turismo)",
+            "Viagem aérea (transporte)"
+          ],
+          "description": "",
+          "topic": "Hobbies and activities"
+        }
+      ],
+      "Luxury hotels": [
+        {
+          "id": "6002915656955",
+          "name": "small luxury hotels world",
+          "audience_size_lower_bound": 228119,
+          "audience_size_upper_bound": 268269,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "small luxury hotels world"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa de viagens",
+          "topic": "Travel, places and events"
+        },
+        {
+          "id": "6003572379887",
+          "name": "Hotéis (hospedagem)",
+          "audience_size_lower_bound": 603371853,
+          "audience_size_upper_bound": 709565300,
+          "path": [
+            "Interesses",
+            "Viagem (viagem e turismo)",
+            "Hotéis (hospedagem)"
+          ],
+          "description": "",
+          "topic": "Hobbies and activities"
+        },
+        {
+          "id": "6003395078731",
+          "name": "Sofitel",
+          "audience_size_lower_bound": 3773078,
+          "audience_size_upper_bound": 4437140,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Sofitel"
+          ],
+          "description": null,
+          "topic": "Travel, places and events"
+        }
+      ],
+      "Luxury goods": [
+        {
+          "id": "6007828099136",
+          "name": "Bens de luxo (varejo)",
+          "audience_size_lower_bound": 673653435,
+          "audience_size_upper_bound": 792216440,
+          "path": [
+            "Interesses",
+            "Compras (varejo)",
+            "Bens de luxo (varejo)"
+          ],
+          "description": "",
+          "topic": "Shopping and fashion"
+        }
+      ],
+      "Luxury vehicles": [],
+      "Fine dining": [
+        {
+          "id": "6011956651362",
+          "name": "FineDiningLovers",
+          "audience_size_lower_bound": 459209,
+          "audience_size_upper_bound": 540030,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "FineDiningLovers"
+          ],
+          "description": null,
+          "disambiguation_category": "Revista",
+          "topic": "Food and drink"
+        }
+      ],
+      "Boating": [
+        {
+          "id": "6003158258840",
+          "name": "Powerboating",
+          "audience_size_lower_bound": 691301,
+          "audience_size_upper_bound": 812970,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Powerboating"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local",
+          "topic": "Hobbies and activities"
+        },
+        {
+          "id": "6003549120598",
+          "name": "Boating (magazine)",
+          "audience_size_lower_bound": 187312,
+          "audience_size_upper_bound": 220280,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Boating (magazine)"
+          ],
+          "description": null,
+          "disambiguation_category": "Revista",
+          "topic": "News and entertainment"
+        },
+        {
+          "id": "6003088188782",
+          "name": "Discover Boating",
+          "audience_size_lower_bound": 169124,
+          "audience_size_upper_bound": 198890,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Discover Boating"
+          ],
+          "description": null,
+          "disambiguation_category": "Esporte e recreação",
+          "topic": "Travel, places and events"
+        }
+      ],
+      "Golf": [
+        {
+          "id": "6003631859287",
+          "name": "Golf",
+          "audience_size_lower_bound": 186157,
+          "audience_size_upper_bound": 218921,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Golf"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local",
+          "topic": "News and entertainment"
+        },
+        {
+          "id": "6003510075864",
+          "name": "Golfe (esporte)",
+          "audience_size_lower_bound": 264069122,
+          "audience_size_upper_bound": 310545288,
+          "path": [
+            "Interesses",
+            "Esportes (esportes)",
+            "Golfe (esporte)"
+          ],
+          "description": "",
+          "topic": "Sports and outdoors"
+        },
+        {
+          "id": "6003418045839",
+          "name": "Volkswagen Golf",
+          "audience_size_lower_bound": 29892151,
+          "audience_size_upper_bound": 35153170,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Volkswagen Golf"
+          ],
+          "description": null,
+          "topic": "Hobbies and activities"
+        }
+      ],
+      "Swimming pools": [
+        {
+          "id": "6003221189867",
+          "name": "Piscina",
+          "audience_size_lower_bound": 152452525,
+          "audience_size_upper_bound": 179284170,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Piscina"
+          ],
+          "description": null,
+          "topic": "Travel, places and events"
+        }
+      ],
+      "Helicopters": [
+        {
+          "id": "6003374769077",
+          "name": "Airbus Helicopters",
+          "audience_size_lower_bound": 234387,
+          "audience_size_upper_bound": 275640,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Airbus Helicopters"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local",
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003226030976",
+          "name": "Maverick Helicopters",
+          "audience_size_lower_bound": 63732,
+          "audience_size_upper_bound": 74950,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Maverick Helicopters"
+          ],
+          "description": null,
+          "disambiguation_category": "Agência de excursões",
+          "topic": "Travel, places and events"
+        },
+        {
+          "id": "6003190279724",
+          "name": "Aeronave",
+          "audience_size_lower_bound": 45090017,
+          "audience_size_upper_bound": 53025860,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Aeronave"
+          ],
+          "description": null,
+          "topic": "Hobbies and activities"
+        }
+      ],
+      "Stock market": [
+        {
+          "id": "6003728598622",
+          "name": "Stock Market Learning",
+          "audience_size_lower_bound": 3537,
+          "audience_size_upper_bound": 4160,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Stock Market Learning"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003349860951",
+          "name": "Mercado de ações (investimento)",
+          "audience_size_lower_bound": 57863562,
+          "audience_size_upper_bound": 68047550,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Mercado de ações (investimento)"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003126209645",
+          "name": "Bolsa de valores (investimento)",
+          "audience_size_lower_bound": 26360782,
+          "audience_size_upper_bound": 31000280,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Bolsa de valores (investimento)"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        }
+      ],
+      "Passive income": [
+        {
+          "id": "6003287729076",
+          "name": "Renda passiva (negócios e finanças)",
+          "audience_size_lower_bound": 13050144,
+          "audience_size_upper_bound": 15346970,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Renda passiva (negócios e finanças)"
+          ],
+          "description": null,
+          "topic": "News and entertainment"
+        }
+      ],
+      "Personal finance": [
+        {
+          "id": "6003143720966",
+          "name": "Finanças pessoais (bancário)",
+          "audience_size_lower_bound": 729818596,
+          "audience_size_upper_bound": 858266670,
+          "path": [
+            "Interesses",
+            "Finanças pessoais (bancário)"
+          ],
+          "description": "",
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6843597338657",
+          "name": "Livros de finanças pessoais (publicação)",
+          "audience_size_lower_bound": 850340,
+          "audience_size_upper_bound": 1000000,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Livros de finanças pessoais (publicação)"
+          ],
+          "description": null,
+          "disambiguation_category": "Figura pública"
+        },
+        {
+          "id": "6812056512236",
+          "name": "Serviços e organizações de finanças pessoais (serviços bancários)",
+          "audience_size_lower_bound": 850340,
+          "audience_size_upper_bound": 1000000,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Serviços e organizações de finanças pessoais (serviços bancários)"
+          ],
+          "description": null,
+          "disambiguation_category": "Figura pública"
+        }
+      ],
+      "Real estate broker": [
+        {
+          "id": "6778210171187",
+          "name": "Corretagem de imóveis residenciais (imóveis)",
+          "audience_size_lower_bound": 850340,
+          "audience_size_upper_bound": 1000000,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Corretagem de imóveis residenciais (imóveis)"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local"
+        },
+        {
+          "id": "6849417269780",
+          "name": "Imóveis residenciais (imóveis)",
+          "audience_size_lower_bound": 850340,
+          "audience_size_upper_bound": 1000000,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Imóveis residenciais (imóveis)"
+          ],
+          "description": null,
+          "disambiguation_category": "Serviço imobiliário"
+        }
+      ],
+      "Real estate agency": [
+        {
+          "id": "6778210171187",
+          "name": "Corretagem de imóveis residenciais (imóveis)",
+          "audience_size_lower_bound": 850340,
+          "audience_size_upper_bound": 1000000,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Corretagem de imóveis residenciais (imóveis)"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local"
+        },
+        {
+          "id": "6797095139936",
+          "name": "Ramos do direito (lei e governo)",
+          "audience_size_lower_bound": 850340,
+          "audience_size_upper_bound": 1000000,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Ramos do direito (lei e governo)"
+          ],
+          "description": null,
+          "disambiguation_category": "Empresa local"
+        }
+      ],
+      "Medicine": [
+        {
+          "id": "6003187374855",
+          "name": "University of Dental Medicine, Mandalay (educação superior)",
+          "audience_size_lower_bound": 4511624,
+          "audience_size_upper_bound": 5305670,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "University of Dental Medicine, Mandalay (educação superior)"
+          ],
+          "description": null,
+          "disambiguation_category": "Dentista e consultório odontológico",
+          "topic": "Education"
+        },
+        {
+          "id": "6003379165605",
+          "name": "Faculty of Medicine Siriraj Hospital, Mahidol University",
+          "audience_size_lower_bound": 2391522,
+          "audience_size_upper_bound": 2812430,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Faculty of Medicine Siriraj Hospital, Mahidol University"
+          ],
+          "description": null,
+          "disambiguation_category": "Hospital"
+        },
+        {
+          "id": "6003270560048",
+          "name": "Ain Shams University Faculty of Medicine",
+          "audience_size_lower_bound": 605008,
+          "audience_size_upper_bound": 711490,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Ain Shams University Faculty of Medicine"
+          ],
+          "description": null,
+          "disambiguation_category": "Faculdade de medicina",
+          "topic": "Education"
+        }
+      ],
+      "Law": [
+        {
+          "id": "6003065916870",
+          "name": "Martin Lawrence",
+          "audience_size_lower_bound": 47271122,
+          "audience_size_upper_bound": 55590840,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Martin Lawrence"
+          ],
+          "description": null,
+          "topic": "People"
+        },
+        {
+          "id": "6003147706726",
+          "name": "Common law",
+          "audience_size_lower_bound": 27160229,
+          "audience_size_upper_bound": 31940430,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Common law"
+          ],
+          "description": null,
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003133642814",
+          "name": "Trust law",
+          "audience_size_lower_bound": 16712389,
+          "audience_size_upper_bound": 19653770,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Trust law"
+          ],
+          "description": null,
+          "topic": "Fitness and wellness"
+        }
+      ],
+      "Healthcare": [
+        {
+          "id": "6012348977256",
+          "name": "AARP Medicare Supplement Plans, insured by UnitedHealthcare Insurance Co.",
+          "audience_size_lower_bound": 476666,
+          "audience_size_upper_bound": 560560,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "AARP Medicare Supplement Plans, insured by UnitedHealthcare Insurance Co."
+          ],
+          "description": null
+        },
+        {
+          "id": "6018607532491",
+          "name": "HealthCare.gov",
+          "audience_size_lower_bound": 179498,
+          "audience_size_upper_bound": 211090,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "HealthCare.gov"
+          ],
+          "description": null,
+          "disambiguation_category": "Site",
+          "topic": "Business and industry"
+        },
+        {
+          "id": "6003649032490",
+          "name": "Modern Healthcare",
+          "audience_size_lower_bound": 136292,
+          "audience_size_upper_bound": 160280,
+          "path": [
+            "Interesses",
+            "Outros interesses",
+            "Modern Healthcare"
+          ],
+          "description": null,
+          "topic": "News and entertainment"
+        }
+      ]
+    },
+    "adTargetingCategory": {
+      "Frequent international travelers": [
+        {
+          "id": "6002714895372",
+          "name": "Viajantes frequentes",
+          "type": "behaviors",
+          "path": [
+            "Viagem",
+            "Viajantes frequentes"
+          ],
+          "description": "Pessoas cuja atividade no Facebook sugere que são viajantes frequentes",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 2572103100,
+          "audience_size_upper_bound": 3024793246
+        },
+        {
+          "id": "6002714898572",
+          "name": "Proprietários de pequenas empresas",
+          "type": "behaviors",
+          "path": [
+            "Atividades digitais",
+            "Proprietários de pequenas empresas"
+          ],
+          "description": "Pessoas que se identificam como proprietários de pequenas empresas ou de pequenas Páginas comerciais no Facebook",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 48579510,
+          "audience_size_upper_bound": 57129504
+        },
+        {
+          "id": "6002764392172",
+          "name": "Usuários dos Pagamentos do Facebook (90 dias)",
+          "type": "behaviors",
+          "path": [
+            "Atividades digitais",
+            "Usuários dos Pagamentos do Facebook (90 dias)"
+          ],
+          "description": "Pessoas que usaram pagamentos do Facebook nos últimos 90 dias",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 533188,
+          "audience_size_upper_bound": 627030
+        }
+      ],
+      "Frequent travelers": [
+        {
+          "id": "6002714895372",
+          "name": "Viajantes frequentes",
+          "type": "behaviors",
+          "path": [
+            "Viagem",
+            "Viajantes frequentes"
+          ],
+          "description": "Pessoas cuja atividade no Facebook sugere que são viajantes frequentes",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 2572103100,
+          "audience_size_upper_bound": 3024793246
+        },
+        {
+          "id": "6002714898572",
+          "name": "Proprietários de pequenas empresas",
+          "type": "behaviors",
+          "path": [
+            "Atividades digitais",
+            "Proprietários de pequenas empresas"
+          ],
+          "description": "Pessoas que se identificam como proprietários de pequenas empresas ou de pequenas Páginas comerciais no Facebook",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 48579510,
+          "audience_size_upper_bound": 57129504
+        },
+        {
+          "id": "6002764392172",
+          "name": "Usuários dos Pagamentos do Facebook (90 dias)",
+          "type": "behaviors",
+          "path": [
+            "Atividades digitais",
+            "Usuários dos Pagamentos do Facebook (90 dias)"
+          ],
+          "description": "Pessoas que usaram pagamentos do Facebook nos últimos 90 dias",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 533188,
+          "audience_size_upper_bound": 627030
+        }
+      ],
+      "Engaged shoppers": [
+        {
+          "id": "6002714895372",
+          "name": "Viajantes frequentes",
+          "type": "behaviors",
+          "path": [
+            "Viagem",
+            "Viajantes frequentes"
+          ],
+          "description": "Pessoas cuja atividade no Facebook sugere que são viajantes frequentes",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 2572103100,
+          "audience_size_upper_bound": 3024793246
+        },
+        {
+          "id": "6002714898572",
+          "name": "Proprietários de pequenas empresas",
+          "type": "behaviors",
+          "path": [
+            "Atividades digitais",
+            "Proprietários de pequenas empresas"
+          ],
+          "description": "Pessoas que se identificam como proprietários de pequenas empresas ou de pequenas Páginas comerciais no Facebook",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 48579510,
+          "audience_size_upper_bound": 57129504
+        },
+        {
+          "id": "6002764392172",
+          "name": "Usuários dos Pagamentos do Facebook (90 dias)",
+          "type": "behaviors",
+          "path": [
+            "Atividades digitais",
+            "Usuários dos Pagamentos do Facebook (90 dias)"
+          ],
+          "description": "Pessoas que usaram pagamentos do Facebook nos últimos 90 dias",
+          "real_time_cluster": false,
+          "audience_size_lower_bound": 533188,
+          "audience_size_upper_bound": 627030
+        }
+      ]
+    },
+    "adworkposition": {
+      "Physician": [
+        {
+          "id": "403013926540061",
+          "name": "Resident Physician",
+          "coverage_lower_bound": 84079,
+          "coverage_upper_bound": 98878
+        },
+        {
+          "id": "108033692552905",
+          "name": "Physician assistant",
+          "coverage_lower_bound": 20481,
+          "coverage_upper_bound": 24086
+        },
+        {
+          "id": "138787906146791",
+          "name": "Resident Physician, Internal Medicine",
+          "coverage_lower_bound": 16238,
+          "coverage_upper_bound": 19096
+        }
+      ],
+      "Lawyer": [
+        {
+          "id": "112696438745118",
+          "name": "Lawyer",
+          "coverage_lower_bound": 913230,
+          "coverage_upper_bound": 1073959,
+          "subtext": "Trujillo, Peru"
+        },
+        {
+          "id": "107582649271173",
+          "name": "Corporate Lawyer",
+          "coverage_lower_bound": 33398,
+          "coverage_upper_bound": 39277
+        },
+        {
+          "id": "771992732888051",
+          "name": "Criminal Lawyer",
+          "coverage_lower_bound": 27931,
+          "coverage_upper_bound": 32848
+        }
+      ],
+      "Dentist": [
+        {
+          "id": "108768179146852",
+          "name": "Dentist",
+          "coverage_lower_bound": 196448,
+          "coverage_upper_bound": 231024
+        },
+        {
+          "id": "108158462546495",
+          "name": "Dentistry",
+          "coverage_lower_bound": 13860,
+          "coverage_upper_bound": 16300
+        },
+        {
+          "id": "110134172349057",
+          "name": "Faculty of Dentistry",
+          "coverage_lower_bound": 85,
+          "coverage_upper_bound": 100,
+          "subtext": "Alexandria, Egito"
+        }
+      ],
+      "Judge": [
+        {
+          "id": "106215529409578",
+          "name": "Judge",
+          "coverage_lower_bound": 42905,
+          "coverage_upper_bound": 50457
+        },
+        {
+          "id": "110152692347671",
+          "name": "Administrative law judge",
+          "coverage_lower_bound": 3585,
+          "coverage_upper_bound": 4216
+        }
+      ],
+      "Civil servant": [],
+      "Manager": [
+        {
+          "id": "108432669181441",
+          "name": "Campaign manager",
+          "coverage_lower_bound": 185714,
+          "coverage_upper_bound": 218400
+        },
+        {
+          "id": "112787258734680",
+          "name": "Unit production manager",
+          "coverage_lower_bound": 141213,
+          "coverage_upper_bound": 166067
+        },
+        {
+          "id": "112965798718648",
+          "name": "Credit manager",
+          "coverage_lower_bound": 117501,
+          "coverage_upper_bound": 138182
+        }
+      ],
+      "Business owner": [
+        {
+          "id": "321873851343665",
+          "name": "Business Owner/Engineer",
+          "coverage_lower_bound": 113548,
+          "coverage_upper_bound": 133533
+        },
+        {
+          "id": "783786835008288",
+          "name": "Orthodontist, Small Business Owner",
+          "coverage_lower_bound": 5352,
+          "coverage_upper_bound": 6295
+        },
+        {
+          "id": "109288035760640",
+          "name": "Business Owner",
+          "coverage_lower_bound": 1976,
+          "coverage_upper_bound": 2324,
+          "subtext": "Bladensburg, Maryland, Estados Unidos"
+        }
+      ],
+      "Engineer": [
+        {
+          "id": "112741458739715",
+          "name": "Engineering technician",
+          "coverage_lower_bound": 302899,
+          "coverage_upper_bound": 356210
+        },
+        {
+          "id": "112071332142867",
+          "name": "Test engineer",
+          "coverage_lower_bound": 81644,
+          "coverage_upper_bound": 96014
+        },
+        {
+          "id": "115026745177226",
+          "name": "Sales engineering",
+          "coverage_lower_bound": 57903,
+          "coverage_upper_bound": 68095
+        }
+      ],
+      "Architect": [
+        {
+          "id": "113128365367347",
+          "name": "Architectural designer",
+          "coverage_lower_bound": 104944,
+          "coverage_upper_bound": 123415
+        },
+        {
+          "id": "107640275932027",
+          "name": "Solution architect",
+          "coverage_lower_bound": 42907,
+          "coverage_upper_bound": 50459
+        },
+        {
+          "id": "107820569239337",
+          "name": "Project Architect",
+          "coverage_lower_bound": 42817,
+          "coverage_upper_bound": 50353
+        }
+      ],
+      "Real estate agent": [
+        {
+          "id": "171815889531702",
+          "name": "Real Estate Agent/Salesperson",
+          "coverage_lower_bound": 181369,
+          "coverage_upper_bound": 213291
+        },
+        {
+          "id": "1025100880851927",
+          "name": "Real Estate Agent/Broker",
+          "coverage_lower_bound": 75013,
+          "coverage_upper_bound": 88216
+        },
+        {
+          "id": "135449086491761",
+          "name": "Real Estate Consultant/Agent",
+          "coverage_lower_bound": 19238,
+          "coverage_upper_bound": 22625
+        }
+      ],
+      "Real estate broker": [
+        {
+          "id": "111867022164671",
+          "name": "Real estate broker",
+          "coverage_lower_bound": 484046,
+          "coverage_upper_bound": 569239
+        },
+        {
+          "id": "1025100880851927",
+          "name": "Real Estate Agent/Broker",
+          "coverage_lower_bound": 75013,
+          "coverage_upper_bound": 88216
+        },
+        {
+          "id": "398986486940929",
+          "name": "Licensed Real Estate Broker",
+          "coverage_lower_bound": 10848,
+          "coverage_upper_bound": 12758
+        }
+      ]
+    }
+  }
+}
