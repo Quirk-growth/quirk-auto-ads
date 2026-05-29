@@ -1,70 +1,68 @@
-# Quirk Auto Ads — v2 (state-aware) — Handoff
+# Quirk Auto Ads v2 — Handoff
 
 **Data:** 2026-05-29
-**Status:** Implementado, smoke-testado (3 cenários), pronto pra teste real
-
----
+**Status:** Implementado, smoke-tested, **campanha real subida no Meta** ✓
 
 ## O que mudou
 
-1. **Estado persistido em `auto_ads.conversas.estado_json` (JSONB)** com:
-   - `etapa_atual` (coletando_info / aguardando_criativo / pronta_pra_subir / subindo / ativa / falhou_dado / falhou_infra)
-   - `criativo` (recebido, url, mimetype, recebido_em)
-   - `brief` (mesma shape do extrator)
-   - `ultima_tentativa` (resultado, motivo, IDs Meta, tentativas_count)
+1. **Estado persistido**: `auto_ads.conversas.estado_json` (JSONB) com etapa, criativo, brief, ultima_tentativa
+2. **Agente principal v2**: lê estado e responde com base nele. Não inventa mais "subindo agora"
+3. **classify_intent (regex)** substitui o classifier LLM — instantâneo, sem custo de token
+4. **validate roda ANTES do agente** em CONFIRMAR/RETRY — cliente recebe 1 msg coerente
+5. **Branch de mídia state-aware**: msg condicional baseada em etapa + brief + última tentativa
+6. **Auto-retry de infra** (Meta 5xx/timeout): até 2 tentativas com 30s de espera
+7. **Comandos do cliente**: CONFIRMAR · RETRY · NOVA CAMPANHA (detectados por regex)
 
-2. **Agente principal v2 com bloco [ESTADO]** no system prompt. Regra anti-mentira explícita: nunca promete "subindo" — só responde com base no estado real.
+## Validação
 
-3. **classify_intent (regex) substitui classifier (LLM)** — instantâneo, sem custo de token, sem dependência de resposta do agente.
+| Teste | Resultado |
+|---|---|
+| Happy path (oi → brief → criativo → CONFIRMAR) | ✓ Campanha `120250407346530210` subiu PAUSED no Meta |
+| Falha de dado + RETRY manual | ✓ `tentativas_count: 1 → 2`, fluxo reiniciou |
+| Branch de mídia state-aware (4 transições) | ✓ Mensagem correta em cada estado |
 
-4. **Validate roda ANTES do agente** em CONFIRMAR/RETRY. Cliente recebe **uma mensagem coerente** em vez de 2 contraditórias.
+## Configuração atual
 
-5. **Branch de mídia state-aware** — confirma recepção com mensagem condicional baseada no estado anterior + brief completude + última tentativa.
+- `auto_ads.clientes` telefone=5511980838409:
+  - `ad_account_id = 2081590208992514` (cartão de crédito — funciona)
+  - `page_id = 687786881077238`
+- `auto_ads.config.meta_access_token`: token válido pra conta atual
+- `auto_ads.campanhas` tem várias entradas dos testes — paused, sem ad real
 
-6. **Auto-retry de infra** (Meta 5xx/timeout/is_transient) — até 2 tentativas com 30s de espera.
+## Como testar no WhatsApp
 
-7. **Comandos novos do cliente**:
-   - `CONFIRMAR` (também: "Confirmado", "Confirma", "pode subir")
-   - `RETRY` (também: "tente de novo", "subir novamente")
-   - `NOVA CAMPANHA` (também: "começar uma nova", "quero outra campanha")
-
----
-
-## Como testar
-
-Manda mensagem do seu WhatsApp (`5511980838409`):
+Conversa resetada. Manda mensagem pelo 5511980838409:
 
 1. "Oi" → agente coleta brief
-2. Manda os dados (tipo, valor, região, perfil, verba, período)
-3. Manda **foto/vídeo** do imóvel → bot confirma criativo + diz "manda CONFIRMAR pra subir"
-4. Manda **CONFIRMAR** → backend valida, sobe na Meta, responde com campaign_id real
+2. Manda dados (tipo, valor, região, perfil, verba, período)
+3. Manda **foto/vídeo** do imóvel
+4. Manda **CONFIRMAR** → backend valida + sobe na Meta + responde com campaign_id real
+5. Se falhar por dado → agente explica + pede correção + cita **RETRY**
 
-Se algo falhar:
-- **Por dado** (raio, imagem, pagamento) → agente explica + pede correção + cita RETRY
-- **Por infra** (rate limit, 5xx) → auto-retry silencioso
+## Comandos do cliente reconhecidos
 
----
+- **CONFIRMAR** ("Confirmado", "Confirma", "Sim subir", "Pode subir") → tenta subir
+- **RETRY** ("tente de novo", "subir novamente", "tenta de novo") → re-tenta
+- **NOVA CAMPANHA** ("começar uma nova", "quero outra campanha") → reseta brief
 
-## Smoke tests rodados
+## Pendências mapeadas (não bloqueiam)
 
-- ✓ Happy path (msg → brief → criativo → CONFIRMAR → estado terminal)
-- ✓ Falha de dado + RETRY manual (tentativas_count 1 → 2)
-- ✓ 4 transições do branch de mídia
+- **Extrator + Advantage+ age**: Meta exige age_max=65 quando usa Advantage+ audience. Hoje gera erro se cliente pediu age_max menor + público com advantage_audience=1. Fix: ajustar prompt do extrator ou normalizar em merge_brief.
+- **Auto-retry por mídia**: `decide_acao_media` detecta cenário mas não dispara retry assíncrono ainda — cliente ainda precisa mandar RETRY explícito. (Backlog: Wait async + sub-workflow.)
+- **Campanhas órfãs nas contas antigas** (1212196032994372, 3771507593117364) — paused, sem ad. Deletar manualmente no Ads Manager.
 
----
+## Próximos sub-projetos
 
-## Conhecido / fora do escopo
+- **B (gestão)**: pausar, reativar, alterar verba/público/geo, encerrar
+- **C (relatórios)**: status, performance, análise (Meta Insights API)
 
-- **Conta Meta `1212196032994372` está sem método de pagamento** — todos os testes terminaram em `falhou_dado` por causa disso. Resolve isso na BM e o ciclo fica completo (`ativa`).
-- **Sub-projetos B (gestão) e C (relatórios) ficaram em backlog** — quando quiser, brainstormar cada um separadamente.
-
----
+Brainstorming separado quando quiser.
 
 ## Arquivos-chave
 
-- **Spec**: `docs/superpowers/specs/2026-05-29-quirk-auto-ads-v2-state-aware-design.md`
-- **Plano**: `docs/superpowers/plans/2026-05-29-quirk-auto-ads-v2-state-aware.md`
-- **Migration**: `sql/004_estado_json.sql`
-- **Prompt v2**: `prompts/agente_principal.md`
-- **Backup v1**: `prompts/agente_principal_v1_legacy.md`
-- **Scripts**: `scripts/v2_*.py` (refator), `scripts/test_v2_*.py` (smoke)
+- Spec: `docs/superpowers/specs/2026-05-29-quirk-auto-ads-v2-state-aware-design.md`
+- Plan: `docs/superpowers/plans/2026-05-29-quirk-auto-ads-v2-state-aware.md`
+- Migration: `sql/004_estado_json.sql`
+- Prompt: `prompts/agente_principal.md` (v2)
+- Scripts refator: `scripts/v2_*.py`
+- Testes smoke: `scripts/test_v2_*.py`
