@@ -1,0 +1,195 @@
+{
+  "updatedAt": "2026-05-29T00:50:42.720Z",
+  "createdAt": "2026-05-29T00:50:42.720Z",
+  "id": "fBUin1UPt5xJEp6g",
+  "name": "Quirk Auto Ads",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quirk-auto-ads",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "quirk-auto-ads"
+    },
+    {
+      "id": "respond_immediate",
+      "name": "respond_immediate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        460
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {}
+      }
+    },
+    {
+      "id": "switch_type",
+      "name": "switch_type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        460,
+        200
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.message.type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.message.type }}",
+                    "rightValue": "media",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "media"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "webhook": {
+      "main": [
+        [
+          {
+            "node": "respond_immediate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "switch_type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "6ae688a4-699e-4855-b1df-b9f16ba18093",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-05-29T00:50:42.738Z",
+      "createdAt": "2026-05-29T00:50:42.738Z",
+      "role": "workflow:owner",
+      "workflowId": "fBUin1UPt5xJEp6g",
+      "projectId": "aVAZ6FhZZRIaJWwx",
+      "project": {
+        "updatedAt": "2025-06-24T02:20:51.472Z",
+        "createdAt": "2025-06-24T01:19:43.055Z",
+        "id": "aVAZ6FhZZRIaJWwx",
+        "name": "Renan Real <contato@quirkgrowth.com.br>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b66f7878-8a71-4e1a-a4a4-d4dc57536429",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-06-24T01:19:43.055Z",
+            "createdAt": "2025-06-24T01:19:43.055Z",
+            "userId": "b66f7878-8a71-4e1a-a4a4-d4dc57536429",
+            "projectId": "aVAZ6FhZZRIaJWwx",
+            "user": {
+              "updatedAt": "2026-05-28T20:55:37.000Z",
+              "createdAt": "2025-06-24T01:19:42.692Z",
+              "id": "b66f7878-8a71-4e1a-a4a4-d4dc57536429",
+              "email": "contato@quirkgrowth.com.br",
+              "firstName": "Renan",
+              "lastName": "Real",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-06-24T02:18:18.610Z",
+                "personalization_survey_n8n_version": "1.99.1",
+                "companySize": "<20",
+                "companyType": "saas",
+                "role": "business-owner",
+                "reportedSource": "google"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "7CKx0VUfm7PnkAUM",
+                "userActivatedAt": 1750822292593,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 1,
+                  "lastShownAt": 1779563837984
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-05-28",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}
