@@ -23,6 +23,9 @@ WORKFLOW_ID_FILE = "/Users/renanreal/quirk_auto_ads/n8n_workflow/.workflow_id"
 # ──────────────────────────────────────────────
 POSTGRES_CRED = {"id": "uPzd3Pjx8g5F7GF6", "name": "Quirk Auto Ads Postgres"}
 ANTHROPIC_CRED = {"id": "WqFBad1qVsyh6ole", "name": "Quirk Anthropic"}
+# Header auth credentials — usadas em HTTP nodes genéricos (Anthropic API + UAZAPI)
+ANTHROPIC_HEADER_CRED = {"id": "Hr9Eb7pGMXTH9hD5", "name": "Quirk Anthropic Header"}
+UAZAPI_HEADER_CRED = {"id": "CGuMGDKk5aSWIYFS", "name": "Quirk UAZAPI Header"}
 
 # ──────────────────────────────────────────────
 # Supabase
