@@ -21,7 +21,7 @@ WORKFLOW_ID_FILE = "/Users/renanreal/quirk_auto_ads/n8n_workflow/.workflow_id"
 # ──────────────────────────────────────────────
 # Credentials no n8n (IDs criados via API)
 # ──────────────────────────────────────────────
-POSTGRES_CRED = {"id": "uPzd3Pjx8g5F7GF6", "name": "Quirk Auto Ads Postgres"}
+POSTGRES_CRED = {"id": "NKHJwhesMp2Bo4Xw", "name": "Quirk Auto Ads Postgres"}
 ANTHROPIC_CRED = {"id": "WqFBad1qVsyh6ole", "name": "Quirk Anthropic"}
 # Header auth credentials — usadas em HTTP nodes genéricos (Anthropic API + UAZAPI)
 ANTHROPIC_HEADER_CRED = {"id": "Hr9Eb7pGMXTH9hD5", "name": "Quirk Anthropic Header"}
