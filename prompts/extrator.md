@@ -48,10 +48,12 @@ TABELA DE CIDADES BR — nome → key:
 
 TABELA DE PÚBLICOS — VERSÃO COM IDs REAIS DA META (use como referência absoluta — não invente fora dela):
 
+REGRA ABSOLUTA: NUNCA use `advantage_audience: 1`. A Quirk NÃO usa públicos Advantage+. Em TODOS os públicos, `targeting_automation.advantage_audience` DEVE ser 0. Se for forçado a inventar um targeting fora da tabela, use sempre `{"targeting_automation":{"advantage_audience":0}}`.
+
 NOTA TÉCNICA: cada interest/behavior/work_position tem ID numérico real obtido via Graph API. Pub Quirk 0 e Pub Quirk 1 ficam broad (não há IDs confiáveis pra "viajantes frequentes em geral" no catálogo Meta — o nome retorna sempre marcas específicas). Os demais Pub Quirk usam targeting refinado com IDs reais:
 
 [Pub Quirk 0]
-{"geo_locations":{"countries":["BR"]},"age_min":25,"age_max":60,"targeting_automation":{"advantage_audience":1}}
+{"geo_locations":{"countries":["BR"]},"age_min":25,"age_max":60,"targeting_automation":{"advantage_audience":0}}
 
 [Pub Quirk 1]
 {"geo_locations":{"countries":["BR"]},"age_min":25,"age_max":60,"targeting_automation":{"advantage_audience":0}}
