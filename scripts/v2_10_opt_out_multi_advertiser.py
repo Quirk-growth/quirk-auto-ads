@@ -18,6 +18,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import n8n_api, config
 
 
+# Multi-Advertiser Ads e Standard Enhancements são configurações de PAGE/BM
+# no Meta — não dá pra controlar via API por ad. Renan deve desativar manual
+# na config da Page (Configurações da BM → Brand Safety → Anunciar com
+# vários anunciantes). Body do creative e ad ficam sem degrees_of_freedom_spec
+# pra não receber erro de campo descontinuado.
+
 NEW_D3_BODY = """={
   "name": "{{ $('validate').item.json.json_extrator.campanha.nome }}",
   "object_story_spec": {
@@ -32,11 +38,6 @@ NEW_D3_BODY = """={
       }
     }
   },
-  "degrees_of_freedom_spec": {
-    "creative_features_spec": {
-      "standard_enhancements": {"enroll_status": "OPT_OUT"}
-    }
-  },
   "access_token": "{{ $('load_meta_token').item.json.valor }}"
 }"""
 
@@ -45,11 +46,6 @@ NEW_D4_BODY = """={
   "name": "{{ $('validate').item.json.json_extrator.campanha.nome }}",
   "adset_id": "{{ $('meta_d2_adset').item.json.id }}",
   "creative": {"creative_id": "{{ $('meta_d3_creative').item.json.id }}"},
-  "degrees_of_freedom_spec": {
-    "creative_features_spec": {
-      "standard_enhancements": {"enroll_status": "OPT_OUT"}
-    }
-  },
   "status": "PAUSED",
   "access_token": "{{ $('load_meta_token').item.json.valor }}"
 }"""
