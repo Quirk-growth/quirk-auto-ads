@@ -27,6 +27,13 @@ Causa-raiz: o sistema confunde **intenção do agente** com **estado do backend*
 - **Retry inteligente:** auto-retry em erros de infra (rate limit, 5xx, timeout); cliente comanda retry em erros de dado (criativo inválido, raio errado, pagamento).
 - **Arquitetura extensível:** preparado pros sub-projetos B (gestão) e C (relatórios) sem refatoração estrutural.
 
+## 2.1 Políticas invioláveis
+
+- **NUNCA DELETE de campanhas no Meta.** Apenas `status=PAUSED` ou `status=ARCHIVED`. Histórico em `auto_ads.campanhas` é imutável (somente INSERT + UPDATE de status). Razão: auditoria, recuperação, evita perda de dados de performance históricos.
+- **NUNCA Multi-Advertiser Ads.** Todo creative e todo ad criado pela automação inclui `degrees_of_freedom_spec.creative_features_spec.multi_advertiser_ads.enroll_status = "OPT_OUT"`. Razão: Quirk não autoriza seus criativos a serem mesclados com outros anunciantes.
+- **NUNCA Standard Enhancements automáticos.** Inclui `standard_enhancements.enroll_status = "OPT_OUT"`. Razão: Quirk controla manualmente a qualidade do criativo.
+- **NUNCA Advantage+ Audiences.** `targeting_meta.targeting_automation.advantage_audience` é forçado a `0` em `merge_brief`, independente do que o extrator gere. Razão: Quirk usa segmentação manual cirúrgica.
+
 ## 3. Não-objetivos
 
 - Gestão de campanhas existentes (pausar, reativar, alterar) — escopo do sub-projeto B.
