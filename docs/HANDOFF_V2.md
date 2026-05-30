@@ -51,10 +51,37 @@ Conversa resetada. Manda mensagem pelo 5511980838409:
 - **Auto-retry por mídia**: `decide_acao_media` detecta cenário mas não dispara retry assíncrono ainda — cliente ainda precisa mandar RETRY explícito. (Backlog: Wait async + sub-workflow.)
 - **Campanhas órfãs nas contas antigas** (1212196032994372, 3771507593117364) — paused, sem ad. Deletar manualmente no Ads Manager.
 
+## Sub-projeto B (gestão de campanhas) — IMPLEMENTADO
+
+**Data:** 2026-05-30 · **Status:** smoke-tested 4/5 cenários OK
+
+6 verbos disponíveis no WhatsApp:
+- **PAUSAR** / **REATIVAR** / **ENCERRAR** — gestão de status (Meta + DB)
+- **ALTERAR VERBA** / **ALTERAR PÚBLICO** / **ALTERAR GEO** — edição de dados
+
+**UX**: comando → lista numerada → selecionar (1, 2, 3...) → confirmar SIM/NÃO.
+**CANCELAR** em qualquer passo volta ao fluxo normal.
+**TTL de 10 min** em sub-flows abandonados (entra em fluxo, esquece, próximo turno trata como nova msg).
+
+**Coleta de novos valores (híbrida)**:
+- VERBA: estruturada (só número 10-100)
+- PÚBLICO: lista numerada (1-20) OU descrição livre que o extrator parcial mapeia pro Pub Quirk mais próximo
+- GEO: estruturada "CIDADE raio_km" OU descrição livre
+
+**Validação smoke**:
+| Teste | Resultado |
+|---|---|
+| PAUSAR (campanha 17: ACTIVE → PAUSED) | ✓ DB + Meta sincronizados |
+| ALTERAR_VERBA (R$ 50 → R$ 80/dia) | ✓ json_extrator atualizado |
+| CANCELAR (selecao + confirmacao) | ✓ gestao resetado |
+| Inputs inválidos (número fora, verba > 100) | ✓ mantém passo, não corrompe estado |
+
+**Audit imutável**: `auto_ads.audit_log` com evento `gestao_*` + antes/depois.
+**Política NUNCA DELETE preservada**: ENCERRAR usa `status=ARCHIVED`.
+
 ## Próximos sub-projetos
 
-- **B (gestão)**: pausar, reativar, alterar verba/público/geo, encerrar
-- **C (relatórios)**: status, performance, análise (Meta Insights API)
+- **C (relatórios)**: status, performance, análise (Meta Insights API) — backlog
 
 Brainstorming separado quando quiser.
 
