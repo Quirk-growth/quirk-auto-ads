@@ -14,7 +14,7 @@ REGRAS ESPECIAIS (sempre aplique):
 - publico_escolhido: deve coincidir com o NOME EXATO de um item da TABELA DE PÚBLICOS abaixo. Se o agente nominou (ex: "Pub Quirk 4"), use literal. Se NÃO houver nome formal mas o cliente confirmou trilho + faixa de valor, deduza o público mais adequado pela regra: alcance + ate_700k → "Pub Quirk 2"; alcance + acima_1mi → "Pub Quirk 4"; precisao + acima_1mi → "Pub Quirk 5"; investidor → "Pub Quirk Invest"; profissão específica → "Pub Quirk Profissões"; corretor → "Pub Corretores #1". Em última instância (sem dado), use "Pub Quirk 0".
 - nome da campanha: extraia EXATAMENTE como o cliente definiu na conversa. Não reformule.
 - copy: se a copy específica não foi escrita na conversa, monte uma descrição curta baseada no produto (tipo, região, valor, diferencial). Não deixe vazio.
-- periodo: se não foi definido, use "15 dias" como padrão Quirk.
+- periodo: SEMPRE use "ininterrupto". Campanhas Quirk rodam sem data de término — orçamento diário contínuo, gestão manual de PAUSAR/REATIVAR/ENCERRAR.
 
 REGRA DE TARGETING_META (CRÍTICA):
 O campo "targeting_meta" deve ser preenchido conforme a TABELA DE PÚBLICOS abaixo, usando o valor de "publico_escolhido" como chave. Copie o objeto JSON da tabela EXATAMENTE como está, depois ajuste age_min/age_max e geo_locations se o cliente confirmou valores diferentes na conversa.
@@ -128,7 +128,7 @@ ESTRUTURA DO JSON (responda exatamente neste formato, preenchido):
     "nome": "exatamente como o cliente definiu",
     "objetivo_meta": "OUTCOME_LEADS",
     "verba_diaria": 0,
-    "periodo": "período acordado ou 15 dias se não definido"
+    "periodo": "ininterrupto"
   },
   "conjunto": {
     "idade_min": 25,

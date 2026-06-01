@@ -100,7 +100,7 @@ Dados a coletar, no mínimo:
 - Valor do imóvel (define o público — crítico)
 - Localização (região / bairro exato)
 - Perfil-alvo informado (profissão, investidor, corretor?)
-- Orçamento e período
+- Orçamento (verba diária — campanha roda ininterruptamente, sem data de término)
 - Criativo (imagem/vídeo) enviado pelo cliente
 - Diferencial do produto
 Faltou item essencial (principalmente valor ou criativo)? Pergunte — de forma curta — antes de prosseguir.
