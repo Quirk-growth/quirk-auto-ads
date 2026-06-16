@@ -23,3 +23,5 @@ __pycache__/
 
 # Workflow ID (não versionar, é runtime state)
 n8n_workflow/.workflow_id
+.superpowers/
+n8n_workflow/.webhook_gateway_id
