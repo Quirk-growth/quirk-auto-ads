@@ -24,15 +24,28 @@ WHERE chave = 'asaas_group_name';
    Pagamentos fora desses critérios são silenciosamente ignorados (HTTP 200,
    sem criar cliente nem mandar boas-vindas).
 
-2. **Atribuição automática de grupo**:
-   Após processar um pagamento válido, o nó `asaas_set_group` faz POST
-   `/v3/customers/{customer_id}` na API do Asaas setando `groupName` pro
-   valor configurado em `asaas_group_name`. Isso garante que mesmo se o
-   Asaas não classificou automaticamente, o customer fica organizado no
-   grupo correto.
+2. **Atribuição automática de grupo** (workaround):
+   ⚠️ **Limitação descoberta**: a API do Asaas (v3) **NÃO permite** alterar o
+   `groupName` de um customer existente via PUT ou POST. Testado em 2026-06-16
+   com 6 variantes diferentes (POST/PUT × {groupName, groupNames, groups,
+   endpoint dedicado}) — todas retornam HTTP 200 mas o grupo segue null.
 
-   Se `asaas_api_key` ou `asaas_group_name` estiver com `TODO_PREENCHER`,
-   o nó silenciosamente faz skip — não bloqueia o fluxo.
+   Solução pra garantir que clientes do Auto Ads entrem no grupo
+   "Auto Ads - Imob":
+
+   **Configurar o link de pagamento no Asaas**:
+   1. Painel Asaas → Vendas → Links de pagamento
+   2. Edita o link `https://www.asaas.com/c/fze4od4rk8ystswh`
+   3. Em "Configurações avançadas" / "Grupo de clientes": seleciona
+      "Auto Ads - Imob"
+   4. Salva
+   5. A partir daí, todo cliente que pagar via esse link é automaticamente
+      atribuído ao grupo no momento da criação (que é onde a API aceita o
+      campo).
+
+   O nó `asaas_set_group` no workflow ficou como **no-op com nota
+   explicativa** — não bloqueia nem tenta a chamada inútil. Se um dia o
+   Asaas liberar o endpoint, basta reativar (código antigo no git).
 
 ## Configurar webhook no Asaas
 
