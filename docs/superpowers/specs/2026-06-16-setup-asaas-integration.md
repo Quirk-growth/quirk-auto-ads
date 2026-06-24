@@ -99,3 +99,26 @@ Vai simular:
 
 O happy path da revisão (status=ativo) só é validado em produção com uma Ad
 Account real compartilhada com a BM Quirk.
+
+---
+
+## Redirecionar pra obrigado.html após o pagamento (opcional)
+
+A página `obrigado.html` (com o botão "Ativar no WhatsApp") pode ser exibida
+automaticamente após o pagamento via `callback.successUrl` na cobrança.
+
+**Requisito do Asaas:** é preciso cadastrar o domínio na conta primeiro,
+senão a criação da cobrança falha com erro 400 ("Não há nenhum domínio
+configurado em sua conta").
+
+Passos:
+1. Asaas → Minha Conta → aba Informações → cadastrar site
+   `https://autoads.quirkgrowth.com.br`
+2. Depois, re-habilitar o callback no workflow "Criar Cobrança"
+   (nó cria_subscription): adicionar
+   `callback: { successUrl: 'https://autoads.quirkgrowth.com.br/obrigado.html', autoRedirect: true }`
+   em cada POST de payment/subscription.
+
+Enquanto o domínio não estiver cadastrado, o callback fica DESABILITADO
+(cobrança funciona normal). O cliente ainda recebe o email + WhatsApp com
+o link de ativação, então o fluxo não depende desse redirect.
