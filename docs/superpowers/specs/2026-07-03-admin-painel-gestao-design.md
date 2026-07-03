@@ -13,6 +13,7 @@ Um painel web protegido pra controlar as assinaturas do Auto Ads: ver clientes a
 - Editar dados do cliente pela tela (só leitura + desativar).
 - Reativar pela tela nesta v1 (reativação é rara; faz-se manual/SQL por ora).
 - Gráficos/BI. Só os números essenciais (total ativos, MRR estimado).
+- **Aviso ao cliente no WhatsApp ao desativar.** V1 é silenciosa (só estanca cobrança/gasto/status). O aviso fica pra depois da conclusão da migração Cloud API + criação de um template dedicado aprovado. O aviso de **inadimplência** (não pagamento) é conceitualmente um fluxo **automático separado** (disparado quando o Asaas reporta cobrança vencida), não o botão manual — será desenhado à parte.
 
 ## Arquitetura
 
