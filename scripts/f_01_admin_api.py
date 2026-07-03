@@ -78,6 +78,53 @@ link("wh_auth", "cfg_auth"); link("cfg_auth", "auth_check"); link("auth_check", 
 
 
 # =========================================================
+# ENDPOINT: admin-clientes  (lista + nº campanhas + totais)
+# =========================================================
+Q_CLIENTES = """
+SELECT c.telefone, c.nome_cliente, c.email, c.status, c.ativo,
+       c.criado_em, c.subscription_started_at, c.subscription_canceled_at,
+       c.ad_account_id, c.page_id, c.gateway, c.subscription_id,
+       COUNT(cp.id) AS n_campanhas
+FROM auto_ads.clientes c
+LEFT JOIN auto_ads.campanhas cp ON cp.telefone = c.telefone
+GROUP BY c.telefone, c.nome_cliente, c.email, c.status, c.ativo,
+         c.criado_em, c.subscription_started_at, c.subscription_canceled_at,
+         c.ad_account_id, c.page_id, c.gateway, c.subscription_id
+ORDER BY c.criado_em DESC
+"""
+
+SHAPE_CLIENTES_JS = """
+const rows = $items().map(i => i.json);
+const body = $('wh_clientes').first().json.body || {};
+const somenteAtivos = body.somente_ativos !== false; // default true
+let cli = rows;
+if (somenteAtivos) cli = rows.filter(r => r.status === 'ativo');
+const total_ativos = rows.filter(r => r.status === 'ativo').length;
+const mrr_estimado = total_ativos * 497;
+return [{ json: { body: { ok: true, clientes: cli, total_ativos, mrr_estimado } } }];
+"""
+
+NODES += [
+  node("wh_clientes", "wh_clientes", "n8n-nodes-base.webhook", 2, wh("admin-clientes"), [240, 320]),
+  pg_node("cfg_cli", "cfg_cli", "SELECT valor AS admin_passphrase FROM auto_ads.config WHERE chave='admin_passphrase' LIMIT 1", [460, 320]),
+  code_node("gate_cli", "gate_cli", gate_js("wh_clientes", "cfg_cli"), [680, 320]),
+  node("if_cli", "if_cli", "n8n-nodes-base.if", 1,
+       {"conditions": {"boolean": [{"value1": "={{ $json.authorized }}", "value2": True}]}},
+       [880, 320]),
+  pg_node("q_clientes", "q_clientes", Q_CLIENTES, [1100, 260]),
+  code_node("shape_cli", "shape_cli", SHAPE_CLIENTES_JS, [1320, 260]),
+  respond_node("resp_cli_ok", "resp_cli_ok", 200, [1540, 260]),
+  code_node("deny_cli", "deny_cli", "return [{ json: { body: { ok:false, erro:'unauthorized' } } }];", [1100, 420]),
+  respond_node("resp_cli_401", "resp_cli_401", 401, [1320, 420]),
+]
+link("wh_clientes", "cfg_cli"); link("cfg_cli", "gate_cli"); link("gate_cli", "if_cli")
+link("if_cli", "q_clientes", 0)   # true
+link("q_clientes", "shape_cli"); link("shape_cli", "resp_cli_ok")
+link("if_cli", "deny_cli", 1)     # false
+link("deny_cli", "resp_cli_401")
+
+
+# =========================================================
 # DEPLOY (cria ou atualiza + ativa)
 # =========================================================
 def deploy():
