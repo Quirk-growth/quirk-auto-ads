@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Auto Ads — Gestão</title>
+<style>
+  :root{--bg:#001D41;--deep:#00132C;--surf:#0a2952;--blue:#1D80FF;--neon:#00E5FF;--green:#39b54a;--red:#ef4444;--txt:#fff;--muted:#8CBEFF}
+  *{box-sizing:border-box}body{margin:0;font-family:'Poppins',system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px}
+  .card{background:var(--surf);border-radius:14px;padding:20px}
+  input,button{font:inherit}
+  input{background:var(--deep);border:1px solid #143667;color:#fff;border-radius:10px;padding:12px 14px;width:100%}
+  button{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:12px 18px;cursor:pointer;font-weight:600}
+  button.ghost{background:transparent;border:1px solid #143667}
+  button.danger{background:var(--red)}
+  table{width:100%;border-collapse:collapse;margin-top:16px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #143667;font-size:14px}
+  tr[data-tel]{cursor:pointer}tr[data-tel]:hover{background:#0c2f5e}
+  .badge{padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
+  .badge.ativo{background:rgba(57,181,74,.2);color:#7BE38A}
+  .badge.inativo{background:rgba(239,68,68,.2);color:#ff9c9c}
+  .badge.pago_aguardando_meta,.badge.em_onboarding{background:rgba(29,128,255,.2);color:#8CBEFF}
+  .kpis{display:flex;gap:16px;margin-bottom:16px}.kpi{flex:1}.kpi b{font-size:26px;display:block}
+  .hidden{display:none}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(460px,100%);background:var(--deep);
+          border-left:1px solid #143667;padding:24px;overflow:auto;transform:translateX(100%);transition:.2s}
+  .drawer.open{transform:none}.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #123157;font-size:14px}
+  .muted{color:var(--muted)}
+</style></head><body>
+
+<!-- LOGIN -->
+<div id="login" class="wrap"><div class="card" style="max-width:420px;margin:12vh auto">
+  <h2>Auto Ads — Gestão</h2>
+  <p class="muted">Digite a senha de acesso.</p>
+  <input id="pass" type="password" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()">
+  <p id="loginErr" class="hidden" style="color:var(--red)">Senha incorreta.</p>
+  <button style="margin-top:12px;width:100%" onclick="doLogin()">Entrar</button>
+</div></div>
+
+<!-- DASHBOARD -->
+<div id="dash" class="wrap hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h2>Clientes</h2>
+    <label class="muted"><input type="checkbox" id="soAtivos" checked onchange="loadClientes()" style="width:auto"> só ativos</label>
+  </div>
+  <div class="kpis">
+    <div class="card kpi"><span class="muted">Ativos</span><b id="kAtivos">–</b></div>
+    <div class="card kpi"><span class="muted">MRR estimado</span><b id="kMrr">–</b></div>
+  </div>
+  <div class="card"><table><thead><tr>
+    <th>Nome</th><th>Telefone</th><th>Entrada</th><th>Status</th><th>Campanhas</th><th>Gateway</th>
+  </tr></thead><tbody id="tbody"></tbody></table></div>
+</div>
+
+<div id="drawer" class="drawer"></div>
+
+<script>
+const API="https://n8n.quirkgrowth.online/webhook";
+let PASS="";
+let CLIENTES=[];
+
+async function post(path, extra){
+  const r=await fetch(`${API}/${path}`,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(Object.assign({passphrase:PASS},extra||{}))});
+  if(r.status===401) throw {unauthorized:true};
+  return r.json();
+}
+async function doLogin(){
+  PASS=document.getElementById("pass").value;
+  try{
+    const res=await post("admin-auth");
+    if(res.ok){ sessionStorage.setItem("pp",PASS); showDash(); }
+    else document.getElementById("loginErr").classList.remove("hidden");
+  }catch(e){ document.getElementById("loginErr").classList.remove("hidden"); }
+}
+function showDash(){
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("dash").classList.remove("hidden");
+  loadClientes();
+}
+function fmtDate(s){ if(!s)return"–"; const d=new Date(s); return d.toLocaleDateString("pt-BR"); }
+function badge(status){ return `<span class="badge ${status}">${status}</span>`; }
+
+async function loadClientes(){
+  const soAtivos=document.getElementById("soAtivos").checked;
+  try{
+    const res=await post("admin-clientes",{somente_ativos:soAtivos});
+    CLIENTES=res.clientes||[];
+    document.getElementById("kAtivos").textContent=res.total_ativos;
+    document.getElementById("kMrr").textContent="R$ "+(res.mrr_estimado||0).toLocaleString("pt-BR");
+    const tb=document.getElementById("tbody");
+    tb.innerHTML=CLIENTES.map(c=>`<tr data-tel="${c.telefone}" onclick="openDetail('${c.telefone}')">
+      <td>${c.nome_cliente||"–"}</td><td>${c.telefone}</td>
+      <td>${fmtDate(c.subscription_started_at||c.criado_em)}</td>
+      <td>${badge(c.status)}</td><td>${c.n_campanhas||0}</td><td>${c.gateway||"–"}</td></tr>`).join("");
+  }catch(e){ if(e.unauthorized) logout(); }
+}
+function logout(){ sessionStorage.removeItem("pp"); location.reload(); }
+
+async function openDetail(tel){
+  const c=CLIENTES.find(x=>x.telefone===tel); if(!c)return;
+  const d=document.getElementById("drawer");
+  d.innerHTML=`
+    <button class="ghost" onclick="closeDrawer()" style="float:right">Fechar</button>
+    <h3>${c.nome_cliente||"–"}</h3>
+    <div class="row"><span class="muted">Telefone</span><span>${c.telefone}</span></div>
+    <div class="row"><span class="muted">Email</span><span>${c.email||"–"}</span></div>
+    <div class="row"><span class="muted">Entrada</span><span>${fmtDate(c.subscription_started_at||c.criado_em)}</span></div>
+    <div class="row"><span class="muted">Status</span><span>${badge(c.status)}</span></div>
+    <div class="row"><span class="muted">Ad Account</span><span>${c.ad_account_id||"–"}</span></div>
+    <div class="row"><span class="muted">Página</span><span>${c.page_id||"–"}</span></div>
+    <div class="row"><span class="muted">Campanhas</span><span>${c.n_campanhas||0}</span></div>
+    <h4 style="margin-top:20px">Extrato de pagamentos</h4>
+    <div id="extrato" class="muted">Carregando…</div>
+    <button class="danger" style="width:100%;margin-top:24px" onclick="doDeactivate('${c.telefone}','${(c.nome_cliente||'').replace(/'/g,'')}')">Desativar cliente</button>`;
+  d.classList.add("open");
+  loadExtrato(c.subscription_id);
+}
+function closeDrawer(){ document.getElementById("drawer").classList.remove("open"); }
+
+async function loadExtrato(subId){
+  const el=document.getElementById("extrato");
+  try{
+    const res=await post("admin-extrato",{subscription_id:subId});
+    const p=res.pagamentos||[];
+    el.innerHTML = p.length? p.map(x=>`<div class="row">
+      <span>${fmtDate(x.paymentDate||x.dueDate)}</span>
+      <span>R$ ${(x.value||0).toLocaleString("pt-BR")} · ${x.status}</span></div>`).join("")
+      : "Sem pagamentos.";
+  }catch(e){ el.textContent = e.unauthorized? "Sessão expirada." : "Erro ao carregar extrato."; }
+}
+
+async function doDeactivate(tel,nome){
+  if(!confirm(`Desativar ${nome||tel}?\n\nIsto vai:\n• Cancelar a assinatura no Asaas (para de cobrar)\n• Pausar as campanhas Meta (para de gastar)\n• Marcar status = inativo\n\nConfirmar?`)) return;
+  try{
+    const res=await post("admin-desativar",{telefone:tel});
+    if(res.ok){
+      alert(`Cliente desativado.\nAsaas: ${res.passo_asaas.ok?"✓":"✗"}\nMeta: ${res.passo_meta.pausadas}/${res.passo_meta.total} pausadas\nStatus: ✓`);
+      closeDrawer(); loadClientes();
+    } else alert("Falhou: "+(res.erro||"erro"));
+  }catch(e){ if(e.unauthorized) logout(); else alert("Erro de rede."); }
+}
+
+// auto-login se já autenticado nesta sessão
+window.addEventListener("load",()=>{ const p=sessionStorage.getItem("pp"); if(p){ PASS=p; showDash(); } });
+</script>
+</body></html>
