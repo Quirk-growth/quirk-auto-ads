@@ -125,6 +125,50 @@ link("deny_cli", "resp_cli_401")
 
 
 # =========================================================
+# ENDPOINT: admin-extrato  (pagamentos por subscription — Asaas)
+# =========================================================
+EXTRATO_JS = """
+const body = $('wh_extrato').first().json.body || {};
+const cfg = $('cfg_ext').first().json;
+const sub = String(body.subscription_id || '').trim();
+if (!sub) return [{ json: { body: { ok:true, pagamentos: [] } } }];
+let r;
+try {
+  r = await this.helpers.httpRequest({
+    method: 'GET',
+    url: `https://api.asaas.com/v3/payments?subscription=${sub}&limit=50`,
+    headers: { 'access_token': cfg.asaas_api_key, 'Content-Type': 'application/json' },
+    json: true, returnFullResponse: false,
+  });
+} catch (e) {
+  const det = (e && e.response && e.response.body) || (e && e.message) || String(e);
+  return [{ json: { body: { ok:false, erro:'asaas', detalhe: det } } }];
+}
+const pagamentos = (r.data || []).map(p => ({
+  id: p.id, value: p.value, status: p.status, billingType: p.billingType,
+  dueDate: p.dueDate, paymentDate: p.paymentDate, invoiceUrl: p.invoiceUrl,
+}));
+return [{ json: { body: { ok:true, pagamentos } } }];
+"""
+
+NODES += [
+  node("wh_extrato", "wh_extrato", "n8n-nodes-base.webhook", 2, wh("admin-extrato"), [240, 560]),
+  pg_node("cfg_ext", "cfg_ext", "SELECT MAX(CASE WHEN chave='admin_passphrase' THEN valor END) AS admin_passphrase, MAX(CASE WHEN chave='asaas_api_key' THEN valor END) AS asaas_api_key FROM auto_ads.config WHERE chave IN ('admin_passphrase','asaas_api_key')", [460, 560]),
+  code_node("gate_ext", "gate_ext", gate_js("wh_extrato", "cfg_ext"), [680, 560]),
+  node("if_ext", "if_ext", "n8n-nodes-base.if", 1,
+       {"conditions": {"boolean": [{"value1": "={{ $json.authorized }}", "value2": True}]}},
+       [880, 560]),
+  code_node("do_extrato", "do_extrato", EXTRATO_JS, [1100, 500]),
+  respond_node("resp_ext_ok", "resp_ext_ok", 200, [1320, 500]),
+  code_node("deny_ext", "deny_ext", "return [{ json: { body: { ok:false, erro:'unauthorized' } } }];", [1100, 660]),
+  respond_node("resp_ext_401", "resp_ext_401", 401, [1320, 660]),
+]
+link("wh_extrato", "cfg_ext"); link("cfg_ext", "gate_ext"); link("gate_ext", "if_ext")
+link("if_ext", "do_extrato", 0); link("do_extrato", "resp_ext_ok")
+link("if_ext", "deny_ext", 1);   link("deny_ext", "resp_ext_401")
+
+
+# =========================================================
 # DEPLOY (cria ou atualiza + ativa)
 # =========================================================
 def deploy():
