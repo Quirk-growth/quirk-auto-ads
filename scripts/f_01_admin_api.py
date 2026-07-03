@@ -169,6 +169,85 @@ link("if_ext", "deny_ext", 1);   link("deny_ext", "resp_ext_401")
 
 
 # =========================================================
+# ENDPOINT: admin-desativar  (Asaas cancel -> Meta pause -> status -> audit)
+# =========================================================
+# Passo Asaas + Meta num code node (retorna resultados + carrega dados p/ os PGs seguintes)
+DESATIVAR_JS = """
+const body = $('wh_desativar').first().json.body || {};
+const cfg = $('cfg_des').first().json;
+const telefone = String(body.telefone || '').trim();
+if (!telefone) return [{ json: { body: { ok:false, erro:'sem_telefone' } } , stop:true }];
+
+// dados do cliente + campanhas (vieram nos PGs anteriores)
+const cli = $('pg_cli_des').first().json;              // { subscription_id }
+const campRows = $('pg_camp_des').all().map(i => i.json).filter(r => r.campaign_id);
+
+const asaasHeaders = { 'access_token': cfg.asaas_api_key, 'Content-Type': 'application/json' };
+
+// 1) Asaas: cancela assinatura
+let passo_asaas = { ok:false };
+const sub = cli && cli.subscription_id;
+if (!sub) { passo_asaas = { ok:true, nota:'sem_subscription' }; }
+else {
+  try {
+    await this.helpers.httpRequest({ method:'DELETE', url:`https://api.asaas.com/v3/subscriptions/${sub}`, headers: asaasHeaders, json:true });
+    passo_asaas = { ok:true, subscription_id: sub };
+  } catch (e) {
+    const det=(e&&e.response&&e.response.body)||(e&&e.message)||String(e);
+    // se ja cancelada/inexistente, trata como ok
+    passo_asaas = { ok:true, nota:'ja_cancelada_ou_inexistente', detalhe: det };
+  }
+}
+
+// 2) Meta: pausa cada campanha do cliente
+let pausadas = 0; const erros = [];
+for (const c of campRows) {
+  try {
+    await this.helpers.httpRequest({ method:'POST', url:`https://graph.facebook.com/v21.0/${c.campaign_id}`,
+      body:{ status:'PAUSED', access_token: cfg.meta_access_token }, json:true });
+    pausadas++;
+  } catch (e) { erros.push({ campaign_id: c.campaign_id, erro: (e&&e.message)||String(e) }); }
+}
+const passo_meta = { ok: erros.length===0, pausadas, total: campRows.length, erros };
+
+return [{ json: { telefone, passo_asaas, passo_meta } }];
+"""
+
+# code final: monta a resposta (o UPDATE e o audit rodam entre este e o respond)
+RESP_DES_JS = """
+const d = $('do_desativar').first().json;
+return [{ json: { body: { ok:true, passo_asaas: d.passo_asaas, passo_meta: d.passo_meta, passo_status: { ok:true } } } }];
+"""
+
+NODES += [
+  node("wh_desativar", "wh_desativar", "n8n-nodes-base.webhook", 2, wh("admin-desativar"), [240, 820]),
+  pg_node("cfg_des", "cfg_des", "SELECT MAX(CASE WHEN chave='admin_passphrase' THEN valor END) AS admin_passphrase, MAX(CASE WHEN chave='asaas_api_key' THEN valor END) AS asaas_api_key, MAX(CASE WHEN chave='meta_access_token' THEN valor END) AS meta_access_token FROM auto_ads.config WHERE chave IN ('admin_passphrase','asaas_api_key','meta_access_token')", [460, 820]),
+  code_node("gate_des", "gate_des", gate_js("wh_desativar", "cfg_des"), [680, 820]),
+  node("if_des", "if_des", "n8n-nodes-base.if", 1,
+       {"conditions": {"boolean": [{"value1": "={{ $json.authorized }}", "value2": True}]}},
+       [880, 820]),
+  pg_node("pg_cli_des", "pg_cli_des", "SELECT subscription_id FROM auto_ads.clientes WHERE telefone = '{{ $('wh_desativar').first().json.body.telefone }}' LIMIT 1", [1080, 760]),
+  # sentinela (NULL campaign_id) garante >=1 item mesmo se o cliente nao tiver campanhas,
+  # senao a cadeia linear do n8n para aqui (nenhum item -> do_desativar nunca roda).
+  # do_desativar ja ignora linhas sem campaign_id via .filter(r => r.campaign_id).
+  pg_node("pg_camp_des", "pg_camp_des", "SELECT campaign_id FROM auto_ads.campanhas WHERE telefone = '{{ $('wh_desativar').first().json.body.telefone }}' AND status <> 'DELETED' AND campaign_id IS NOT NULL UNION ALL SELECT NULL::text WHERE NOT EXISTS (SELECT 1 FROM auto_ads.campanhas WHERE telefone = '{{ $('wh_desativar').first().json.body.telefone }}' AND status <> 'DELETED' AND campaign_id IS NOT NULL)", [1280, 760]),
+  code_node("do_desativar", "do_desativar", DESATIVAR_JS, [1480, 760]),
+  pg_node("pg_update_des", "pg_update_des", "UPDATE auto_ads.clientes SET status='inativo', ativo=false, subscription_canceled_at=now(), status_atualizado_em=now() WHERE telefone = '{{ $('do_desativar').first().json.telefone }}'", [1680, 760]),
+  pg_node("pg_audit_des", "pg_audit_des", "INSERT INTO auto_ads.audit_log (telefone, evento, detalhes) VALUES ('{{ $('do_desativar').first().json.telefone }}', 'admin_desativar', '{{ JSON.stringify($('do_desativar').first().json).replace(/'/g, \"''\") }}'::jsonb)", [1880, 760]),
+  code_node("resp_des_build", "resp_des_build", RESP_DES_JS, [2080, 760]),
+  respond_node("resp_des_ok", "resp_des_ok", 200, [2280, 760]),
+  code_node("deny_des", "deny_des", "return [{ json: { body: { ok:false, erro:'unauthorized' } } }];", [1080, 920]),
+  respond_node("resp_des_401", "resp_des_401", 401, [1280, 920]),
+]
+link("wh_desativar", "cfg_des"); link("cfg_des", "gate_des"); link("gate_des", "if_des")
+link("if_des", "pg_cli_des", 0)
+link("pg_cli_des", "pg_camp_des"); link("pg_camp_des", "do_desativar")
+link("do_desativar", "pg_update_des"); link("pg_update_des", "pg_audit_des")
+link("pg_audit_des", "resp_des_build"); link("resp_des_build", "resp_des_ok")
+link("if_des", "deny_des", 1); link("deny_des", "resp_des_401")
+
+
+# =========================================================
 # DEPLOY (cria ou atualiza + ativa)
 # =========================================================
 def deploy():
