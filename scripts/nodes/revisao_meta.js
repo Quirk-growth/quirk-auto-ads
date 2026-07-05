@@ -90,10 +90,9 @@ const candidatas = pages
   .sort((a, b) => norm(b.name).length - norm(a.name).length);
 const paginaEncontrada = candidatas[0];
 if (!paginaEncontrada) {
-  const nomes = pages.slice(0, 8).map(p => `• ${p.name}`).join('\n');
   return [{ json: {
     ok: false, motivo: 'pagina_nao_compartilhada', telefone,
-    mensagem: `Não achei tua Página entre as que a Quirk tem acesso.\n\nConfere:\n1. Você compartilhou a *Página* com a Quirk (ID ${BM_QUIRK})?\n2. Me manda o *nome exato* da Página, como aparece no Facebook.` + (pages.length ? `\n\nPáginas que já tenho acesso:\n${nomes}` : ''),
+    mensagem: `Ainda não localizei a sua Página compartilhada com a Quirk.\n\nConfere rapidinho:\n1. Você compartilhou a *sua Página* com a Quirk (ID ${BM_QUIRK}), com a permissão certa?\n2. Me manda o *nome exato* da Página, igualzinho aparece no seu Facebook.\n\nAssim que ajustar, é só me chamar. 🙂`,
   }}];
 }
 
