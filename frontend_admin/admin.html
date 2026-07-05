@@ -16,12 +16,17 @@
   table{width:100%;border-collapse:collapse;margin-top:16px}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #143667;font-size:14px}
   tr[data-tel]{cursor:pointer}tr[data-tel]:hover{background:#0c2f5e}
-  .badge{padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
+  .badge{padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
   .badge.ativo{background:rgba(57,181,74,.2);color:#7BE38A}
   .badge.inativo{background:rgba(239,68,68,.2);color:#ff9c9c}
-  .badge.pago_aguardando_meta,.badge.em_onboarding{background:rgba(29,128,255,.2);color:#8CBEFF}
+  .badge.pago_aguardando_meta,.badge.em_onboarding,.badge.em_revisao{background:rgba(255,193,7,.18);color:#ffd257}
   .kpis{display:flex;gap:16px;margin-bottom:16px}.kpi{flex:1}.kpi b{font-size:26px;display:block}
   .hidden{display:none}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+  .chip{background:transparent;border:1px solid #143667;color:var(--muted);padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px}
+  .chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .search{max-width:280px;margin-left:auto}
+  .count{color:var(--muted);font-size:13px;margin:10px 2px 0}
   .drawer{position:fixed;top:0;right:0;height:100%;width:min(460px,100%);background:var(--deep);
           border-left:1px solid #143667;padding:24px;overflow:auto;transform:translateX(100%);transition:.2s}
   .drawer.open{transform:none}.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #123157;font-size:14px}
@@ -39,14 +44,19 @@
 
 <!-- DASHBOARD -->
 <div id="dash" class="wrap hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <h2>Clientes</h2>
-    <label class="muted"><input type="checkbox" id="soAtivos" checked onchange="loadClientes()" style="width:auto"> só ativos</label>
-  </div>
+  <h2>Clientes</h2>
   <div class="kpis">
     <div class="card kpi"><span class="muted">Ativos</span><b id="kAtivos">–</b></div>
     <div class="card kpi"><span class="muted">MRR estimado</span><b id="kMrr">–</b></div>
   </div>
+  <div class="filters">
+    <button class="chip active" data-f="todos" onclick="setFilter('todos')">Todos</button>
+    <button class="chip" data-f="ativo" onclick="setFilter('ativo')">Ativo</button>
+    <button class="chip" data-f="onboarding" onclick="setFilter('onboarding')">Onboarding</button>
+    <button class="chip" data-f="inativo" onclick="setFilter('inativo')">Inativo</button>
+    <input class="search" id="search" placeholder="Buscar por nome…" oninput="onSearch(this.value)">
+  </div>
+  <div class="count" id="count"></div>
   <div class="card"><table><thead><tr>
     <th>Nome</th><th>Telefone</th><th>Entrada</th><th>Status</th><th>Campanhas</th><th>Gateway</th>
   </tr></thead><tbody id="tbody"></tbody></table></div>
@@ -56,8 +66,12 @@
 
 <script>
 const API="https://n8n.quirkgrowth.online/webhook";
+const ONBOARDING=["pago_aguardando_meta","em_onboarding","em_revisao"];
+const STATUS_LABEL={ativo:"ativo",inativo:"inativo",pago_aguardando_meta:"aguardando ativação",em_onboarding:"onboarding",em_revisao:"em revisão"};
 let PASS="";
 let CLIENTES=[];
+let FILTER="todos";
+let SEARCH="";
 
 async function post(path, extra){
   const r=await fetch(`${API}/${path}`,{method:"POST",headers:{"Content-Type":"application/json"},
@@ -79,21 +93,42 @@ function showDash(){
   loadClientes();
 }
 function fmtDate(s){ if(!s)return"–"; const d=new Date(s); return d.toLocaleDateString("pt-BR"); }
-function badge(status){ return `<span class="badge ${status}">${status}</span>`; }
+function badge(status){ return `<span class="badge ${status}">${STATUS_LABEL[status]||status}</span>`; }
 
 async function loadClientes(){
-  const soAtivos=document.getElementById("soAtivos").checked;
   try{
-    const res=await post("admin-clientes",{somente_ativos:soAtivos});
+    const res=await post("admin-clientes",{somente_ativos:false});
     CLIENTES=res.clientes||[];
     document.getElementById("kAtivos").textContent=res.total_ativos;
     document.getElementById("kMrr").textContent="R$ "+(res.mrr_estimado||0).toLocaleString("pt-BR");
-    const tb=document.getElementById("tbody");
-    tb.innerHTML=CLIENTES.map(c=>`<tr data-tel="${c.telefone}" onclick="openDetail('${c.telefone}')">
+    renderTable();
+  }catch(e){ if(e.unauthorized) logout(); }
+}
+
+function setFilter(f){
+  FILTER=f;
+  document.querySelectorAll(".chip").forEach(ch=>ch.classList.toggle("active", ch.dataset.f===f));
+  renderTable();
+}
+function onSearch(v){ SEARCH=(v||"").trim().toLowerCase(); renderTable(); }
+
+function matchFilter(c){
+  if(FILTER==="ativo") return c.status==="ativo";
+  if(FILTER==="inativo") return c.status==="inativo";
+  if(FILTER==="onboarding") return ONBOARDING.includes(c.status);
+  return true;
+}
+
+function renderTable(){
+  const rows=CLIENTES.filter(matchFilter)
+    .filter(c=>!SEARCH || (c.nome_cliente||"").toLowerCase().includes(SEARCH));
+  document.getElementById("count").textContent=`${rows.length} de ${CLIENTES.length} cliente(s)`;
+  const tb=document.getElementById("tbody");
+  tb.innerHTML = rows.length ? rows.map(c=>`<tr data-tel="${c.telefone}" onclick="openDetail('${c.telefone}')">
       <td>${c.nome_cliente||"–"}</td><td>${c.telefone}</td>
       <td>${fmtDate(c.subscription_started_at||c.criado_em)}</td>
-      <td>${badge(c.status)}</td><td>${c.n_campanhas||0}</td><td>${c.gateway||"–"}</td></tr>`).join("");
-  }catch(e){ if(e.unauthorized) logout(); }
+      <td>${badge(c.status)}</td><td>${c.n_campanhas||0}</td><td>${c.gateway||"–"}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="muted">Nenhum cliente neste filtro.</td></tr>`;
 }
 function logout(){ sessionStorage.removeItem("pp"); location.reload(); }
 
