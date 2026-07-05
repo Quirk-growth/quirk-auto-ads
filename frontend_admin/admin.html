@@ -16,6 +16,7 @@
   table{width:100%;border-collapse:collapse;margin-top:16px}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #143667;font-size:14px}
   tr[data-tel]{cursor:pointer}tr[data-tel]:hover{background:#0c2f5e}
+  thead th{cursor:pointer;user-select:none}.ar{font-size:11px;color:var(--neon);margin-left:3px}
   .badge{padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
   .badge.ativo{background:rgba(57,181,74,.2);color:#7BE38A}
   .badge.inativo{background:rgba(239,68,68,.2);color:#ff9c9c}
@@ -58,7 +59,12 @@
   </div>
   <div class="count" id="count"></div>
   <div class="card"><table><thead><tr>
-    <th>Nome</th><th>Telefone</th><th>Entrada</th><th>Status</th><th>Campanhas</th><th>Gateway</th>
+    <th data-col="nome_cliente" onclick="setSort('nome_cliente')">Nome <span class="ar"></span></th>
+    <th data-col="telefone" onclick="setSort('telefone')">Telefone <span class="ar"></span></th>
+    <th data-col="entrada" onclick="setSort('entrada')">Entrada <span class="ar"></span></th>
+    <th data-col="status" onclick="setSort('status')">Status <span class="ar"></span></th>
+    <th data-col="n_campanhas" onclick="setSort('n_campanhas')">Campanhas <span class="ar"></span></th>
+    <th data-col="gateway" onclick="setSort('gateway')">Gateway <span class="ar"></span></th>
   </tr></thead><tbody id="tbody"></tbody></table></div>
 </div>
 
@@ -72,6 +78,7 @@ let PASS="";
 let CLIENTES=[];
 let FILTER="todos";
 let SEARCH="";
+let SORT={col:null,dir:1};
 
 async function post(path, extra){
   const r=await fetch(`${API}/${path}`,{method:"POST",headers:{"Content-Type":"application/json"},
@@ -111,6 +118,16 @@ function setFilter(f){
   renderTable();
 }
 function onSearch(v){ SEARCH=(v||"").trim().toLowerCase(); renderTable(); }
+function setSort(col){
+  if(SORT.col===col) SORT.dir*=-1; else { SORT.col=col; SORT.dir=1; }
+  renderTable();
+}
+function cmpRows(a,b){
+  const col=SORT.col;
+  if(col==="entrada") return ((new Date(a.subscription_started_at||a.criado_em||0))-(new Date(b.subscription_started_at||b.criado_em||0)))*SORT.dir;
+  if(col==="n_campanhas") return ((+a.n_campanhas||0)-(+b.n_campanhas||0))*SORT.dir;
+  return String(a[col]||"").toLowerCase().localeCompare(String(b[col]||"").toLowerCase())*SORT.dir;
+}
 
 function matchFilter(c){
   if(FILTER==="ativo") return c.status==="ativo";
@@ -120,9 +137,14 @@ function matchFilter(c){
 }
 
 function renderTable(){
-  const rows=CLIENTES.filter(matchFilter)
+  let rows=CLIENTES.filter(matchFilter)
     .filter(c=>!SEARCH || (c.nome_cliente||"").toLowerCase().includes(SEARCH));
+  if(SORT.col) rows=rows.slice().sort(cmpRows);
   document.getElementById("count").textContent=`${rows.length} de ${CLIENTES.length} cliente(s)`;
+  document.querySelectorAll("thead th").forEach(th=>{
+    const s=th.querySelector(".ar"); if(!s) return;
+    s.textContent = th.dataset.col===SORT.col ? (SORT.dir>0?"▲":"▼") : "";
+  });
   const tb=document.getElementById("tbody");
   tb.innerHTML = rows.length ? rows.map(c=>`<tr data-tel="${c.telefone}" onclick="openDetail('${c.telefone}')">
       <td>${c.nome_cliente||"–"}</td><td>${c.telefone}</td>
