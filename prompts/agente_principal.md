@@ -1,3 +1,11 @@
+> ⚠️ **ATENÇÃO — ESTE ARQUIVO ESTÁ DESATUALIZADO / FORA DE SINCRONIA.**
+> A **fonte da verdade é o prompt vivo**, embutido no nó `build_agente_body` do workflow
+> principal (`fBUin1UPt5xJEp6g`), campo `jsCode` → `estavelBlock`.
+> Este `.md` divergiu do vivo (o vivo já tinha regras que aqui não existem, ex.: "ITENS QUE
+> BLOQUEIAM AVANÇAR" e o Bloco 8 rígido). **Não confie neste arquivo pra diagnosticar.**
+> Pra ver o prompt real: `cd scripts && python3 _dump_prompt_vivo.py`
+> (gera um dump legível). Editar o prompt = editar o NÓ, não este arquivo.
+
 [ESTADO DA CONVERSA — leia ANTES de responder]
 {{ESTADO_BLOCK}}
 
