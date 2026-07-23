@@ -25,3 +25,10 @@ __pycache__/
 n8n_workflow/.workflow_id
 .superpowers/
 n8n_workflow/.webhook_gateway_id
+
+# Segredos e IDs de credenciais (n8n) — nunca versionar
+.env
+.env.*
+n8n_workflow/.wa_cloud_cred_id
+n8n_workflow/.whatsapp_cloud_inbound_id
+.DS_Store
