@@ -1,0 +1,1233 @@
+{
+  "updatedAt": "2026-07-02T14:52:27.642Z",
+  "createdAt": "2026-06-16T16:59:21.407Z",
+  "id": "2ZnZqb4wFous4uEs",
+  "name": "Quirk Auto Ads — Webhook Gateway",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quirk-auto-ads-payment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        120,
+        300
+      ],
+      "webhookId": "quirk-auto-ads-payment"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Parse payload Asaas + filtra Auto Ads + BUSCA dados do cliente (telefone/email/nome) na API.\n// IMPORTANTE: no webhook do Asaas, payment.customer vem como ID (string), SEM telefone/email.\n// Por isso buscamos o cliente via GET /v3/customers/{id}.\nconst body = $('webhook').first().json.body || {};\nconst event = body.event || '';\nconst payment = body.payment || {};\n\nconst customer_id = (typeof payment.customer === 'string')\n  ? payment.customer\n  : ((payment.customer || {}).id || null);\nconst subscription_id = payment.subscription || payment.subscriptionId || null;\n\nlet valor_esperado_cents = 49700;\nlet valor_bump_cents = 59600;\nlet grupo_auto_ads = '';\nlet api_key = '';\ntry {\n  const cfg = $('load_config_asaas').first().json;\n  valor_esperado_cents = parseInt(cfg.asaas_product_value_cents || '49700', 10);\n  grupo_auto_ads = (cfg.asaas_group_name || '').trim();\n  api_key = cfg.asaas_api_key || '';\n} catch (e) {}\n\nconst valor_pago_cents = Math.round((payment.value || 0) * 100);\nconst ext_ref = String(payment.externalReference || '').toLowerCase();\nconst eh_auto_ads =\n  valor_pago_cents === valor_esperado_cents\n  || valor_pago_cents === valor_bump_cents\n  || ext_ref.includes('auto-ads')\n  || ext_ref.includes('dia1-com-bump');\n\nif (!eh_auto_ads) {\n  return [{ json: { skip: true, motivo: 'pagamento_nao_eh_auto_ads', event, valor_pago_cents, ext_ref } }];\n}\n\nlet novo_status = null;\nif (['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'].includes(event)) {\n  novo_status = 'pago_aguardando_meta';\n} else if (['PAYMENT_REFUNDED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_DELETED',\n            'SUBSCRIPTION_DELETED', 'SUBSCRIPTION_INACTIVATED'].includes(event)) {\n  novo_status = 'inativo';\n} else {\n  return [{ json: { skip: true, event, motivo: 'evento_ignorado' } }];\n}\n\nif (!customer_id) {\n  return [{ json: { skip: true, motivo: 'sem_customer_id', event } }];\n}\nif (!api_key || api_key === 'TODO_PREENCHER') {\n  return [{ json: { skip: true, motivo: 'asaas_sem_api_key', event } }];\n}\n\nlet cust;\ntry {\n  cust = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://api.asaas.com/v3/customers/${customer_id}`,\n    headers: { 'access_token': api_key, 'Content-Type': 'application/json' },\n    json: true,\n    returnFullResponse: false,\n  });\n} catch (e) {\n  const detalhe = (e && e.response && e.response.body) || (e && e.message) || String(e);\n  return [{ json: { skip: true, motivo: 'erro_busca_customer', event, customer_id, detalhe } }];\n}\n\nconst phoneRaw = cust.mobilePhone || cust.phone || '';\nconst email = cust.email || '';\nconst nome = cust.name || '';\nlet telefone = String(phoneRaw).replace(/\\D/g, '');\nif (telefone.length >= 10 && !telefone.startsWith('55')) telefone = '55' + telefone;\n\nif (!telefone || telefone.length < 10) {\n  return [{ json: { skip: true, motivo: 'telefone_invalido', event, customer_id, email, nome } }];\n}\n\nreturn [{ json: {\n  skip: false,\n  event, novo_status, telefone, email, nome,\n  subscription_id, customer_id, valor_pago_cents, ext_ref,\n}}];\n"
+      },
+      "id": "parse_payment",
+      "name": "parse_payment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.skip }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "if_proseguir",
+      "name": "if_proseguir",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO auto_ads.clientes\n  (telefone, nome_cliente, email, gateway, subscription_id, status, subscription_started_at)\nVALUES\n  ('{{ $json.telefone }}',\n   NULLIF('{{ ($json.nome || '').replace(/'/g, \"''\") }}', ''),\n   NULLIF('{{ ($json.email || '').replace(/'/g, \"''\") }}', ''),\n   'asaas',\n   NULLIF('{{ $json.subscription_id || '' }}', ''),\n   '{{ $json.novo_status }}',\n   CASE WHEN '{{ $json.novo_status }}' = 'pago_aguardando_meta' THEN NOW() ELSE NULL END)\nON CONFLICT (telefone) DO UPDATE\nSET\n  -- Status: regras de transição\n  --   - Pra 'inativo' (cancelamento/refund): sempre aceita\n  --   - Pra 'pago_aguardando_meta': SÓ se cliente estava NULL ou 'inativo'\n  --     (mensalidades recorrentes NÃO devem regredir cliente em onboarding/ativo)\n  status = CASE\n    WHEN EXCLUDED.status = 'inativo' THEN 'inativo'\n    WHEN EXCLUDED.status = 'pago_aguardando_meta'\n         AND auto_ads.clientes.status IN ('inativo') THEN 'pago_aguardando_meta'\n    WHEN EXCLUDED.status = 'pago_aguardando_meta'\n         AND auto_ads.clientes.status IS NULL THEN 'pago_aguardando_meta'\n    ELSE auto_ads.clientes.status\n  END,\n  email = COALESCE(EXCLUDED.email, auto_ads.clientes.email),\n  nome_cliente = COALESCE(EXCLUDED.nome_cliente, auto_ads.clientes.nome_cliente),\n  subscription_id = COALESCE(EXCLUDED.subscription_id, auto_ads.clientes.subscription_id),\n  subscription_started_at =\n    CASE WHEN auto_ads.clientes.subscription_started_at IS NULL\n              AND EXCLUDED.status = 'pago_aguardando_meta'\n         THEN NOW()\n         ELSE auto_ads.clientes.subscription_started_at END,\n  subscription_canceled_at =\n    CASE WHEN EXCLUDED.status = 'inativo' THEN NOW() ELSE NULL END\nRETURNING *;",
+        "options": {}
+      },
+      "id": "upsert_cliente",
+      "name": "upsert_cliente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        920,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NKHJwhesMp2Bo4Xw",
+          "name": "Quirk Auto Ads Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lê do upsert_cliente (tem o status), não do asaas_set_group (que é no-op com skip)\nconst r = $('upsert_cliente').first().json;\nconst status = r.status;\nif (status === 'pago_aguardando_meta') {\n  return [{ json: { action: 'welcome', cliente: r } }];\n} else if (status === 'inativo') {\n  return [{ json: { action: 'pausar_campanhas', cliente: r } }];\n}\nreturn [{ json: { action: 'noop', cliente: r } }];"
+      },
+      "id": "switch_action",
+      "name": "switch_action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.action }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "welcome"
+            },
+            {
+              "value2": "pausar_campanhas"
+            }
+          ]
+        }
+      },
+      "id": "switch_router",
+      "name": "switch_router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst nome = ($('parse_payment').first().json.nome || '').split(' ')[0] || 'aí';\nconst telefone = $('parse_payment').first().json.telefone;\nconst BASE = \"https://lp.quirkgrowth.com.br/autoads\";\n\nconst msgs = [\n  { text:\n      `Oi, ${nome}! 👋 Sou o assistente do Quirk Auto Ads.\\n\\n` +\n      `Pagamento confirmado ✓ Bem-vindo!\\n\\n` +\n      `Antes de subir teu primeiro anúncio, preciso te ajudar a conectar tua conta Meta. Vou te guiar — é rápido.` },\n  { text:\n      `📋 Montei um guia completo, com print de cada tela e um vídeo, pra você seguir no teu ritmo:\\n\\n` +\n      `${BASE}/onboarding.html\\n\\n` +\n      `Abre esse link, segue o passo a passo, e qualquer dúvida me chama aqui.` },\n  { text:\n      `💡 Dica: se travar em algum passo, manda um *print* aqui do que você tá vendo na tela. ` +\n      `Eu olho a imagem e te falo exatamente o que clicar.\\n\\n` +\n      `Quando terminar de conectar tudo, me manda numa mensagem só:\\n` +\n      `1️⃣ Nome da tua Fanpage\\n` +\n      `2️⃣ Teu Ad Account ID (números do Gerenciador)\\n\\n` +\n      `Aí eu valido e libero a criação de campanhas. 🚀` },\n];\n\n// Sem imagens no welcome (guia visual completo está na página + email).\nreturn msgs.map((m, i) => ({\n  json: { telefone, text: m.text, image_url: null, has_image: false, index: i, total: msgs.length }\n}));\n"
+      },
+      "id": "build_welcome_msgs",
+      "name": "build_welcome_msgs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        140
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://quirkgrowth.uazapi.com/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.telefone }}\",\n  \"text\": {{ JSON.stringify($json.text) }}\n}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
+        }
+      },
+      "id": "send_welcome",
+      "name": "send_welcome",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CGuMGDKk5aSWIYFS",
+          "name": "Quirk UAZAPI Header"
+        }
+      },
+      "continueOnFail": true,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE auto_ads.clientes\nSET status = 'em_onboarding'\nWHERE telefone = '{{ $('parse_payment').first().json.telefone }}'\n  AND status = 'pago_aguardando_meta';",
+        "options": {}
+      },
+      "id": "mark_onboarding",
+      "name": "mark_onboarding",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2120,
+        140
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NKHJwhesMp2Bo4Xw",
+          "name": "Quirk Auto Ads Postgres"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Lista campanhas ACTIVE do cliente e pausa via Meta API\nconst cliente = $('parse_payment').first().json;\nreturn [{ json: { telefone: cliente.telefone, todo: 'pausar_campanhas_via_meta_api' } }];\n// TODO: implementar pause real. Por ora, só marca a intenção.\n"
+      },
+      "id": "pause_campaigns",
+      "name": "pause_campaigns",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"received\": \"{{ $json.event || $json.action || 'noop' }}\" }",
+        "options": {}
+      },
+      "id": "respond_ok",
+      "name": "respond_ok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2360,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  MAX(CASE WHEN chave = 'asaas_api_key' THEN valor END) AS asaas_api_key,\n  MAX(CASE WHEN chave = 'asaas_group_name' THEN valor END) AS asaas_group_name,\n  MAX(CASE WHEN chave = 'asaas_product_value_cents' THEN valor END) AS asaas_product_value_cents\nFROM auto_ads.config\nWHERE chave IN ('asaas_api_key', 'asaas_group_name', 'asaas_product_value_cents');",
+        "options": {}
+      },
+      "id": "load_config_asaas",
+      "name": "load_config_asaas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        320,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NKHJwhesMp2Bo4Xw",
+          "name": "Quirk Auto Ads Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// LIMITAÇÃO da API do Asaas: groupName NÃO pode ser alterado via PUT/POST após\n// a criação do customer (testado em 2026-06-16, várias variantes). Solução:\n// configurar o LINK DE PAGAMENTO no painel Asaas pra atribuir o grupo\n// automaticamente no momento da venda. Esse Code fica como log/no-op pra\n// preservar o fluxo e estrutura.\n//\n// Se o Asaas algum dia liberar o endpoint, basta destrocar este code pelo\n// original (git history → asaas_set_group antes do c_de_referência).\n\nconst customer_id = $('parse_payment').first().json.customer_id;\nconst cfg = $('load_config_asaas').first().json;\nconst grupo_nome = (cfg.asaas_group_name || '').trim();\n\nreturn [{\n  json: {\n    ok: false,\n    skip: true,\n    customer_id,\n    motivo: 'asaas_group_api_limitation',\n    nota: 'Asaas não permite alterar groupName via API após criação. Configure o LINK DE PAGAMENTO no painel Asaas pra atribuir grupo \"' + grupo_nome + '\" automaticamente.',\n  }\n}];\n"
+      },
+      "id": "asaas_set_group",
+      "name": "asaas_set_group",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.image_url }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if_has_image",
+      "name": "if_has_image",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1880,
+        140
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://quirkgrowth.uazapi.com/send/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.telefone }}\",\n  \"type\": \"image\",\n  \"media\": {{ JSON.stringify($json.image_url) }},\n  \"text\": {{ JSON.stringify($json.text) }}\n}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
+        }
+      },
+      "id": "send_welcome_media",
+      "name": "send_welcome_media",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        60
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CGuMGDKk5aSWIYFS",
+          "name": "Quirk UAZAPI Header"
+        }
+      },
+      "continueOnFail": true,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst lead = $('parse_payment').first().json;\nconst email = lead.email || '';\nconst nome = (lead.nome || '').split(' ')[0] || '';\nconst saudacao = nome ? ('Olá, ' + nome + '!') : 'Olá!';\n\nconst BASE = \"https://lp.quirkgrowth.com.br/autoads\";\nconst WA = \"https://wa.me/5511952136200?text=Acabei%20de%20assinar%20o%20Quirk%20Auto%20Ads%21%20Quero%20ativar%20minha%20conta.\";\n\n// Se não tem email, pula (não dá erro)\nif (!email || !email.includes('@')) {\n  return [{ json: { skip_email: true, motivo: 'sem_email' } }];\n}\n\nconst html = `\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f0f3f8;padding:24px 0;font-family:Arial,Helvetica,sans-serif;\">\n<tr><td align=\"center\">\n<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;background:#001D41;border-radius:16px;overflow:hidden;\">\n\n  <tr><td style=\"padding:32px 36px 20px;text-align:center;\">\n    <div style=\"display:inline-block;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1D80FF,#00E5FF);\"></div>\n    <div style=\"color:#ffffff;font-size:18px;font-weight:bold;margin-top:10px;\">Quirk Auto Ads</div>\n    <div style=\"color:#00E5FF;font-size:11px;letter-spacing:2px;text-transform:uppercase;\">by Quirk Growth</div>\n  </td></tr>\n\n  <tr><td style=\"padding:8px 36px 0;text-align:center;\">\n    <div style=\"font-size:46px;\">✅</div>\n    <h1 style=\"color:#ffffff;font-size:24px;margin:12px 0 6px;\">Pagamento confirmado!</h1>\n    <p style=\"color:#8CBEFF;font-size:15px;margin:0 0 4px;\">${saudacao} Tua assinatura do Quirk Auto Ads está ativa.</p>\n  </td></tr>\n\n  <tr><td style=\"padding:24px 36px;\">\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0a2952;border:1px solid rgba(140,190,255,0.2);border-radius:12px;\">\n      <tr><td style=\"padding:24px;text-align:center;\">\n        <div style=\"color:#39b54a;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;\">⚡ Próximo passo</div>\n        <p style=\"color:#b8c9e0;font-size:14px;margin:0 0 18px;line-height:1.5;\">Pra ativar tua conta, clica no botão e manda a mensagem no nosso WhatsApp. O assistente te guia passo a passo (com prints) pra conectar tua Meta.</p>\n        <a href=\"${WA}\" style=\"display:inline-block;background:#25d366;color:#ffffff;text-decoration:none;font-size:16px;font-weight:bold;padding:15px 32px;border-radius:999px;\">💬 Ativar no WhatsApp</a>\n        <p style=\"color:#8CBEFF;font-size:12px;margin:14px 0 0;\">ou salva nosso número: <strong style=\"color:#fff;\">+55 11 95213-6200</strong></p>\n      </td></tr>\n    </table>\n  </td></tr>\n\n  <tr><td style=\"padding:0 36px 8px;\">\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:rgba(255,187,51,0.1);border:1px solid rgba(255,187,51,0.3);border-radius:10px;\">\n      <tr><td style=\"padding:14px 18px;color:#ffd768;font-size:13px;line-height:1.5;\">\n        ⚠️ <strong style=\"color:#fff;\">Importante:</strong> manda a mensagem do <strong style=\"color:#fff;\">mesmo número de WhatsApp</strong> que você cadastrou no pagamento — é assim que te reconheço e libero teu acesso na hora.\n      </td></tr>\n    </table>\n  </td></tr>\n\n  <tr><td style=\"padding:20px 36px;\">\n    <div style=\"color:#8CBEFF;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;\">O que acontece depois</div>\n    <p style=\"color:#b8c9e0;font-size:14px;line-height:1.7;margin:0;\">\n      <strong style=\"color:#fff;\">1.</strong> Você manda a mensagem no nosso WhatsApp.<br>\n      <strong style=\"color:#fff;\">2.</strong> O assistente te guia pra conectar Fanpage, WhatsApp, Instagram e Meta Ads (com prints de cada tela).<br>\n      <strong style=\"color:#fff;\">3.</strong> Quando terminar, eu valido tudo automático e libero a criação de campanhas.<br>\n      <strong style=\"color:#fff;\">4.</strong> Daí é só mandar foto/vídeo do imóvel + descrição que a campanha sobe em minutos. 🚀\n    </p>\n  </td></tr>\n\n  <tr><td style=\"padding:8px 36px 28px;text-align:center;\">\n    <p style=\"color:#8CBEFF;font-size:13px;margin:0 0 10px;\">Prefere ver tudo numa página passo a passo?</p>\n    <a href=\"${BASE}/onboarding.html\" style=\"color:#00E5FF;font-size:14px;text-decoration:underline;\">Abrir o guia completo de ativação →</a>\n  </td></tr>\n\n  <tr><td style=\"padding:18px 36px;border-top:1px solid rgba(140,190,255,0.15);text-align:center;\">\n    <p style=\"color:#8094b0;font-size:12px;margin:0;\">Quirk Auto Ads · um produto da Quirk Growth<br>Dúvidas? Responde este email ou chama no WhatsApp.</p>\n  </td></tr>\n\n</table>\n</td></tr>\n</table>`;\n\nreturn [{ json: {\n  skip_email: false,\n  email,\n  subject: '✅ Pagamento confirmado — ative seu Quirk Auto Ads',\n  html,\n}}];\n"
+      },
+      "id": "build_email_body",
+      "name": "build_email_body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip_email }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "if_tem_email",
+      "name": "if_tem_email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1880,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "send_email",
+      "name": "send_email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2120,
+        400
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OfOKnGWUn7q0MgoM",
+          "name": "Gmail Quirk"
+        }
+      },
+      "continueOnFail": true,
+      "webhookId": "22a43629-55b6-4b92-a3a4-1bc4ba34ff22"
+    }
+  ],
+  "connections": {
+    "webhook": {
+      "main": [
+        [
+          {
+            "node": "load_config_asaas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse_payment": {
+      "main": [
+        [
+          {
+            "node": "if_proseguir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if_proseguir": {
+      "main": [
+        [
+          {
+            "node": "upsert_cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "respond_ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upsert_cliente": {
+      "main": [
+        [
+          {
+            "node": "asaas_set_group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "switch_action": {
+      "main": [
+        [
+          {
+            "node": "switch_router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "switch_router": {
+      "main": [
+        [
+          {
+            "node": "mark_onboarding",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "build_email_body",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "pause_campaigns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "build_welcome_msgs": {
+      "main": [
+        [
+          {
+            "node": "if_has_image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_welcome": {
+      "main": [
+        [
+          {
+            "node": "mark_onboarding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mark_onboarding": {
+      "main": [
+        [
+          {
+            "node": "respond_ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "pause_campaigns": {
+      "main": [
+        [
+          {
+            "node": "respond_ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "load_config_asaas": {
+      "main": [
+        [
+          {
+            "node": "parse_payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "asaas_set_group": {
+      "main": [
+        [
+          {
+            "node": "switch_action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if_has_image": {
+      "main": [
+        [
+          {
+            "node": "send_welcome_media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "send_welcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_welcome_media": {
+      "main": [
+        [
+          {
+            "node": "mark_onboarding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "build_email_body": {
+      "main": [
+        [
+          {
+            "node": "if_tem_email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if_tem_email": {
+      "main": [
+        [
+          {
+            "node": "send_email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "bd62e540-9fd5-493b-bef2-98fb5cfe4ad7",
+  "activeVersionId": "bd62e540-9fd5-493b-bef2-98fb5cfe4ad7",
+  "versionCounter": 16,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "shared": [
+    {
+      "updatedAt": "2026-06-16T16:59:21.412Z",
+      "createdAt": "2026-06-16T16:59:21.412Z",
+      "role": "workflow:owner",
+      "workflowId": "2ZnZqb4wFous4uEs",
+      "projectId": "aVAZ6FhZZRIaJWwx",
+      "project": {
+        "updatedAt": "2025-06-24T02:20:51.472Z",
+        "createdAt": "2025-06-24T01:19:43.055Z",
+        "id": "aVAZ6FhZZRIaJWwx",
+        "name": "Renan Real <contato@quirkgrowth.com.br>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "b66f7878-8a71-4e1a-a4a4-d4dc57536429"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-07-02T14:52:27.644Z",
+    "createdAt": "2026-07-02T14:52:27.644Z",
+    "versionId": "bd62e540-9fd5-493b-bef2-98fb5cfe4ad7",
+    "workflowId": "2ZnZqb4wFous4uEs",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "quirk-auto-ads-payment",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "webhook",
+        "name": "webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          120,
+          300
+        ],
+        "webhookId": "quirk-auto-ads-payment"
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Parse payload Asaas + filtra Auto Ads + BUSCA dados do cliente (telefone/email/nome) na API.\n// IMPORTANTE: no webhook do Asaas, payment.customer vem como ID (string), SEM telefone/email.\n// Por isso buscamos o cliente via GET /v3/customers/{id}.\nconst body = $('webhook').first().json.body || {};\nconst event = body.event || '';\nconst payment = body.payment || {};\n\nconst customer_id = (typeof payment.customer === 'string')\n  ? payment.customer\n  : ((payment.customer || {}).id || null);\nconst subscription_id = payment.subscription || payment.subscriptionId || null;\n\nlet valor_esperado_cents = 49700;\nlet valor_bump_cents = 59600;\nlet grupo_auto_ads = '';\nlet api_key = '';\ntry {\n  const cfg = $('load_config_asaas').first().json;\n  valor_esperado_cents = parseInt(cfg.asaas_product_value_cents || '49700', 10);\n  grupo_auto_ads = (cfg.asaas_group_name || '').trim();\n  api_key = cfg.asaas_api_key || '';\n} catch (e) {}\n\nconst valor_pago_cents = Math.round((payment.value || 0) * 100);\nconst ext_ref = String(payment.externalReference || '').toLowerCase();\nconst eh_auto_ads =\n  valor_pago_cents === valor_esperado_cents\n  || valor_pago_cents === valor_bump_cents\n  || ext_ref.includes('auto-ads')\n  || ext_ref.includes('dia1-com-bump');\n\nif (!eh_auto_ads) {\n  return [{ json: { skip: true, motivo: 'pagamento_nao_eh_auto_ads', event, valor_pago_cents, ext_ref } }];\n}\n\nlet novo_status = null;\nif (['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'].includes(event)) {\n  novo_status = 'pago_aguardando_meta';\n} else if (['PAYMENT_REFUNDED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_DELETED',\n            'SUBSCRIPTION_DELETED', 'SUBSCRIPTION_INACTIVATED'].includes(event)) {\n  novo_status = 'inativo';\n} else {\n  return [{ json: { skip: true, event, motivo: 'evento_ignorado' } }];\n}\n\nif (!customer_id) {\n  return [{ json: { skip: true, motivo: 'sem_customer_id', event } }];\n}\nif (!api_key || api_key === 'TODO_PREENCHER') {\n  return [{ json: { skip: true, motivo: 'asaas_sem_api_key', event } }];\n}\n\nlet cust;\ntry {\n  cust = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://api.asaas.com/v3/customers/${customer_id}`,\n    headers: { 'access_token': api_key, 'Content-Type': 'application/json' },\n    json: true,\n    returnFullResponse: false,\n  });\n} catch (e) {\n  const detalhe = (e && e.response && e.response.body) || (e && e.message) || String(e);\n  return [{ json: { skip: true, motivo: 'erro_busca_customer', event, customer_id, detalhe } }];\n}\n\nconst phoneRaw = cust.mobilePhone || cust.phone || '';\nconst email = cust.email || '';\nconst nome = cust.name || '';\nlet telefone = String(phoneRaw).replace(/\\D/g, '');\nif (telefone.length >= 10 && !telefone.startsWith('55')) telefone = '55' + telefone;\n\nif (!telefone || telefone.length < 10) {\n  return [{ json: { skip: true, motivo: 'telefone_invalido', event, customer_id, email, nome } }];\n}\n\nreturn [{ json: {\n  skip: false,\n  event, novo_status, telefone, email, nome,\n  subscription_id, customer_id, valor_pago_cents, ext_ref,\n}}];\n"
+        },
+        "id": "parse_payment",
+        "name": "parse_payment",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          560,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ !!$json.skip }}",
+                "value2": false
+              }
+            ]
+          }
+        },
+        "id": "if_proseguir",
+        "name": "if_proseguir",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [
+          680,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO auto_ads.clientes\n  (telefone, nome_cliente, email, gateway, subscription_id, status, subscription_started_at)\nVALUES\n  ('{{ $json.telefone }}',\n   NULLIF('{{ ($json.nome || '').replace(/'/g, \"''\") }}', ''),\n   NULLIF('{{ ($json.email || '').replace(/'/g, \"''\") }}', ''),\n   'asaas',\n   NULLIF('{{ $json.subscription_id || '' }}', ''),\n   '{{ $json.novo_status }}',\n   CASE WHEN '{{ $json.novo_status }}' = 'pago_aguardando_meta' THEN NOW() ELSE NULL END)\nON CONFLICT (telefone) DO UPDATE\nSET\n  -- Status: regras de transição\n  --   - Pra 'inativo' (cancelamento/refund): sempre aceita\n  --   - Pra 'pago_aguardando_meta': SÓ se cliente estava NULL ou 'inativo'\n  --     (mensalidades recorrentes NÃO devem regredir cliente em onboarding/ativo)\n  status = CASE\n    WHEN EXCLUDED.status = 'inativo' THEN 'inativo'\n    WHEN EXCLUDED.status = 'pago_aguardando_meta'\n         AND auto_ads.clientes.status IN ('inativo') THEN 'pago_aguardando_meta'\n    WHEN EXCLUDED.status = 'pago_aguardando_meta'\n         AND auto_ads.clientes.status IS NULL THEN 'pago_aguardando_meta'\n    ELSE auto_ads.clientes.status\n  END,\n  email = COALESCE(EXCLUDED.email, auto_ads.clientes.email),\n  nome_cliente = COALESCE(EXCLUDED.nome_cliente, auto_ads.clientes.nome_cliente),\n  subscription_id = COALESCE(EXCLUDED.subscription_id, auto_ads.clientes.subscription_id),\n  subscription_started_at =\n    CASE WHEN auto_ads.clientes.subscription_started_at IS NULL\n              AND EXCLUDED.status = 'pago_aguardando_meta'\n         THEN NOW()\n         ELSE auto_ads.clientes.subscription_started_at END,\n  subscription_canceled_at =\n    CASE WHEN EXCLUDED.status = 'inativo' THEN NOW() ELSE NULL END\nRETURNING *;",
+          "options": {}
+        },
+        "id": "upsert_cliente",
+        "name": "upsert_cliente",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          920,
+          240
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "NKHJwhesMp2Bo4Xw",
+            "name": "Quirk Auto Ads Postgres"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Lê do upsert_cliente (tem o status), não do asaas_set_group (que é no-op com skip)\nconst r = $('upsert_cliente').first().json;\nconst status = r.status;\nif (status === 'pago_aguardando_meta') {\n  return [{ json: { action: 'welcome', cliente: r } }];\n} else if (status === 'inativo') {\n  return [{ json: { action: 'pausar_campanhas', cliente: r } }];\n}\nreturn [{ json: { action: 'noop', cliente: r } }];"
+        },
+        "id": "switch_action",
+        "name": "switch_action",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1160,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "dataType": "string",
+          "value1": "={{ $json.action }}",
+          "rules": {
+            "rules": [
+              {
+                "value2": "welcome"
+              },
+              {
+                "value2": "pausar_campanhas"
+              }
+            ]
+          }
+        },
+        "id": "switch_router",
+        "name": "switch_router",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 1,
+        "position": [
+          1400,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst nome = ($('parse_payment').first().json.nome || '').split(' ')[0] || 'aí';\nconst telefone = $('parse_payment').first().json.telefone;\nconst BASE = \"https://lp.quirkgrowth.com.br/autoads\";\n\nconst msgs = [\n  { text:\n      `Oi, ${nome}! 👋 Sou o assistente do Quirk Auto Ads.\\n\\n` +\n      `Pagamento confirmado ✓ Bem-vindo!\\n\\n` +\n      `Antes de subir teu primeiro anúncio, preciso te ajudar a conectar tua conta Meta. Vou te guiar — é rápido.` },\n  { text:\n      `📋 Montei um guia completo, com print de cada tela e um vídeo, pra você seguir no teu ritmo:\\n\\n` +\n      `${BASE}/onboarding.html\\n\\n` +\n      `Abre esse link, segue o passo a passo, e qualquer dúvida me chama aqui.` },\n  { text:\n      `💡 Dica: se travar em algum passo, manda um *print* aqui do que você tá vendo na tela. ` +\n      `Eu olho a imagem e te falo exatamente o que clicar.\\n\\n` +\n      `Quando terminar de conectar tudo, me manda numa mensagem só:\\n` +\n      `1️⃣ Nome da tua Fanpage\\n` +\n      `2️⃣ Teu Ad Account ID (números do Gerenciador)\\n\\n` +\n      `Aí eu valido e libero a criação de campanhas. 🚀` },\n];\n\n// Sem imagens no welcome (guia visual completo está na página + email).\nreturn msgs.map((m, i) => ({\n  json: { telefone, text: m.text, image_url: null, has_image: false, index: i, total: msgs.length }\n}));\n"
+        },
+        "id": "build_welcome_msgs",
+        "name": "build_welcome_msgs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1640,
+          140
+        ],
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://quirkgrowth.uazapi.com/send/text",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "httpHeaderAuth",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"number\": \"{{ $json.telefone }}\",\n  \"text\": {{ JSON.stringify($json.text) }}\n}",
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 1500
+              }
+            }
+          }
+        },
+        "id": "send_welcome",
+        "name": "send_welcome",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1880,
+          140
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "CGuMGDKk5aSWIYFS",
+            "name": "Quirk UAZAPI Header"
+          }
+        },
+        "continueOnFail": true,
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE auto_ads.clientes\nSET status = 'em_onboarding'\nWHERE telefone = '{{ $('parse_payment').first().json.telefone }}'\n  AND status = 'pago_aguardando_meta';",
+          "options": {}
+        },
+        "id": "mark_onboarding",
+        "name": "mark_onboarding",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          2120,
+          140
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "NKHJwhesMp2Bo4Xw",
+            "name": "Quirk Auto Ads Postgres"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Lista campanhas ACTIVE do cliente e pausa via Meta API\nconst cliente = $('parse_payment').first().json;\nreturn [{ json: { telefone: cliente.telefone, todo: 'pausar_campanhas_via_meta_api' } }];\n// TODO: implementar pause real. Por ora, só marca a intenção.\n"
+        },
+        "id": "pause_campaigns",
+        "name": "pause_campaigns",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1640,
+          340
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={ \"ok\": true, \"received\": \"{{ $json.event || $json.action || 'noop' }}\" }",
+          "options": {}
+        },
+        "id": "respond_ok",
+        "name": "respond_ok",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          2360,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT\n  MAX(CASE WHEN chave = 'asaas_api_key' THEN valor END) AS asaas_api_key,\n  MAX(CASE WHEN chave = 'asaas_group_name' THEN valor END) AS asaas_group_name,\n  MAX(CASE WHEN chave = 'asaas_product_value_cents' THEN valor END) AS asaas_product_value_cents\nFROM auto_ads.config\nWHERE chave IN ('asaas_api_key', 'asaas_group_name', 'asaas_product_value_cents');",
+          "options": {}
+        },
+        "id": "load_config_asaas",
+        "name": "load_config_asaas",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          320,
+          300
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "NKHJwhesMp2Bo4Xw",
+            "name": "Quirk Auto Ads Postgres"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// LIMITAÇÃO da API do Asaas: groupName NÃO pode ser alterado via PUT/POST após\n// a criação do customer (testado em 2026-06-16, várias variantes). Solução:\n// configurar o LINK DE PAGAMENTO no painel Asaas pra atribuir o grupo\n// automaticamente no momento da venda. Esse Code fica como log/no-op pra\n// preservar o fluxo e estrutura.\n//\n// Se o Asaas algum dia liberar o endpoint, basta destrocar este code pelo\n// original (git history → asaas_set_group antes do c_de_referência).\n\nconst customer_id = $('parse_payment').first().json.customer_id;\nconst cfg = $('load_config_asaas').first().json;\nconst grupo_nome = (cfg.asaas_group_name || '').trim();\n\nreturn [{\n  json: {\n    ok: false,\n    skip: true,\n    customer_id,\n    motivo: 'asaas_group_api_limitation',\n    nota: 'Asaas não permite alterar groupName via API após criação. Configure o LINK DE PAGAMENTO no painel Asaas pra atribuir grupo \"' + grupo_nome + '\" automaticamente.',\n  }\n}];\n"
+        },
+        "id": "asaas_set_group",
+        "name": "asaas_set_group",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ !!$json.image_url }}",
+                "value2": true
+              }
+            ]
+          }
+        },
+        "id": "if_has_image",
+        "name": "if_has_image",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [
+          1880,
+          140
+        ],
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://quirkgrowth.uazapi.com/send/media",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "httpHeaderAuth",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"number\": \"{{ $json.telefone }}\",\n  \"type\": \"image\",\n  \"media\": {{ JSON.stringify($json.image_url) }},\n  \"text\": {{ JSON.stringify($json.text) }}\n}",
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 1500
+              }
+            }
+          }
+        },
+        "id": "send_welcome_media",
+        "name": "send_welcome_media",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2120,
+          60
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "CGuMGDKk5aSWIYFS",
+            "name": "Quirk UAZAPI Header"
+          }
+        },
+        "continueOnFail": true,
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst lead = $('parse_payment').first().json;\nconst email = lead.email || '';\nconst nome = (lead.nome || '').split(' ')[0] || '';\nconst saudacao = nome ? ('Olá, ' + nome + '!') : 'Olá!';\n\nconst BASE = \"https://lp.quirkgrowth.com.br/autoads\";\nconst WA = \"https://wa.me/5511952136200?text=Acabei%20de%20assinar%20o%20Quirk%20Auto%20Ads%21%20Quero%20ativar%20minha%20conta.\";\n\n// Se não tem email, pula (não dá erro)\nif (!email || !email.includes('@')) {\n  return [{ json: { skip_email: true, motivo: 'sem_email' } }];\n}\n\nconst html = `\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f0f3f8;padding:24px 0;font-family:Arial,Helvetica,sans-serif;\">\n<tr><td align=\"center\">\n<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;background:#001D41;border-radius:16px;overflow:hidden;\">\n\n  <tr><td style=\"padding:32px 36px 20px;text-align:center;\">\n    <div style=\"display:inline-block;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1D80FF,#00E5FF);\"></div>\n    <div style=\"color:#ffffff;font-size:18px;font-weight:bold;margin-top:10px;\">Quirk Auto Ads</div>\n    <div style=\"color:#00E5FF;font-size:11px;letter-spacing:2px;text-transform:uppercase;\">by Quirk Growth</div>\n  </td></tr>\n\n  <tr><td style=\"padding:8px 36px 0;text-align:center;\">\n    <div style=\"font-size:46px;\">✅</div>\n    <h1 style=\"color:#ffffff;font-size:24px;margin:12px 0 6px;\">Pagamento confirmado!</h1>\n    <p style=\"color:#8CBEFF;font-size:15px;margin:0 0 4px;\">${saudacao} Tua assinatura do Quirk Auto Ads está ativa.</p>\n  </td></tr>\n\n  <tr><td style=\"padding:24px 36px;\">\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0a2952;border:1px solid rgba(140,190,255,0.2);border-radius:12px;\">\n      <tr><td style=\"padding:24px;text-align:center;\">\n        <div style=\"color:#39b54a;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;\">⚡ Próximo passo</div>\n        <p style=\"color:#b8c9e0;font-size:14px;margin:0 0 18px;line-height:1.5;\">Pra ativar tua conta, clica no botão e manda a mensagem no nosso WhatsApp. O assistente te guia passo a passo (com prints) pra conectar tua Meta.</p>\n        <a href=\"${WA}\" style=\"display:inline-block;background:#25d366;color:#ffffff;text-decoration:none;font-size:16px;font-weight:bold;padding:15px 32px;border-radius:999px;\">💬 Ativar no WhatsApp</a>\n        <p style=\"color:#8CBEFF;font-size:12px;margin:14px 0 0;\">ou salva nosso número: <strong style=\"color:#fff;\">+55 11 95213-6200</strong></p>\n      </td></tr>\n    </table>\n  </td></tr>\n\n  <tr><td style=\"padding:0 36px 8px;\">\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:rgba(255,187,51,0.1);border:1px solid rgba(255,187,51,0.3);border-radius:10px;\">\n      <tr><td style=\"padding:14px 18px;color:#ffd768;font-size:13px;line-height:1.5;\">\n        ⚠️ <strong style=\"color:#fff;\">Importante:</strong> manda a mensagem do <strong style=\"color:#fff;\">mesmo número de WhatsApp</strong> que você cadastrou no pagamento — é assim que te reconheço e libero teu acesso na hora.\n      </td></tr>\n    </table>\n  </td></tr>\n\n  <tr><td style=\"padding:20px 36px;\">\n    <div style=\"color:#8CBEFF;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;\">O que acontece depois</div>\n    <p style=\"color:#b8c9e0;font-size:14px;line-height:1.7;margin:0;\">\n      <strong style=\"color:#fff;\">1.</strong> Você manda a mensagem no nosso WhatsApp.<br>\n      <strong style=\"color:#fff;\">2.</strong> O assistente te guia pra conectar Fanpage, WhatsApp, Instagram e Meta Ads (com prints de cada tela).<br>\n      <strong style=\"color:#fff;\">3.</strong> Quando terminar, eu valido tudo automático e libero a criação de campanhas.<br>\n      <strong style=\"color:#fff;\">4.</strong> Daí é só mandar foto/vídeo do imóvel + descrição que a campanha sobe em minutos. 🚀\n    </p>\n  </td></tr>\n\n  <tr><td style=\"padding:8px 36px 28px;text-align:center;\">\n    <p style=\"color:#8CBEFF;font-size:13px;margin:0 0 10px;\">Prefere ver tudo numa página passo a passo?</p>\n    <a href=\"${BASE}/onboarding.html\" style=\"color:#00E5FF;font-size:14px;text-decoration:underline;\">Abrir o guia completo de ativação →</a>\n  </td></tr>\n\n  <tr><td style=\"padding:18px 36px;border-top:1px solid rgba(140,190,255,0.15);text-align:center;\">\n    <p style=\"color:#8094b0;font-size:12px;margin:0;\">Quirk Auto Ads · um produto da Quirk Growth<br>Dúvidas? Responde este email ou chama no WhatsApp.</p>\n  </td></tr>\n\n</table>\n</td></tr>\n</table>`;\n\nreturn [{ json: {\n  skip_email: false,\n  email,\n  subject: '✅ Pagamento confirmado — ative seu Quirk Auto Ads',\n  html,\n}}];\n"
+        },
+        "id": "build_email_body",
+        "name": "build_email_body",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1640,
+          440
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ $json.skip_email }}",
+                "value2": false
+              }
+            ]
+          }
+        },
+        "id": "if_tem_email",
+        "name": "if_tem_email",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [
+          1880,
+          440
+        ]
+      },
+      {
+        "parameters": {
+          "sendTo": "={{ $json.email }}",
+          "subject": "={{ $json.subject }}",
+          "message": "={{ $json.html }}",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "id": "send_email",
+        "name": "send_email",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.1,
+        "position": [
+          2120,
+          400
+        ],
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "OfOKnGWUn7q0MgoM",
+            "name": "Gmail Quirk"
+          }
+        },
+        "continueOnFail": true,
+        "webhookId": "22a43629-55b6-4b92-a3a4-1bc4ba34ff22"
+      }
+    ],
+    "connections": {
+      "webhook": {
+        "main": [
+          [
+            {
+              "node": "load_config_asaas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "parse_payment": {
+        "main": [
+          [
+            {
+              "node": "if_proseguir",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "if_proseguir": {
+        "main": [
+          [
+            {
+              "node": "upsert_cliente",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "respond_ok",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "upsert_cliente": {
+        "main": [
+          [
+            {
+              "node": "asaas_set_group",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "switch_action": {
+        "main": [
+          [
+            {
+              "node": "switch_router",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "switch_router": {
+        "main": [
+          [
+            {
+              "node": "mark_onboarding",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "build_email_body",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "pause_campaigns",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "build_welcome_msgs": {
+        "main": [
+          [
+            {
+              "node": "if_has_image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "send_welcome": {
+        "main": [
+          [
+            {
+              "node": "mark_onboarding",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "mark_onboarding": {
+        "main": [
+          [
+            {
+              "node": "respond_ok",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "pause_campaigns": {
+        "main": [
+          [
+            {
+              "node": "respond_ok",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "load_config_asaas": {
+        "main": [
+          [
+            {
+              "node": "parse_payment",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "asaas_set_group": {
+        "main": [
+          [
+            {
+              "node": "switch_action",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "if_has_image": {
+        "main": [
+          [
+            {
+              "node": "send_welcome_media",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "send_welcome",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "send_welcome_media": {
+        "main": [
+          [
+            {
+              "node": "mark_onboarding",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "build_email_body": {
+        "main": [
+          [
+            {
+              "node": "if_tem_email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "if_tem_email": {
+        "main": [
+          [
+            {
+              "node": "send_email",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "Renan Real",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-07-02T14:52:27.720Z",
+        "id": 310,
+        "workflowId": "2ZnZqb4wFous4uEs",
+        "versionId": "bd62e540-9fd5-493b-bef2-98fb5cfe4ad7",
+        "event": "activated",
+        "userId": "b66f7878-8a71-4e1a-a4a4-d4dc57536429"
+      },
+      {
+        "createdAt": "2026-07-02T14:52:27.703Z",
+        "id": 309,
+        "workflowId": "2ZnZqb4wFous4uEs",
+        "versionId": "bd62e540-9fd5-493b-bef2-98fb5cfe4ad7",
+        "event": "deactivated",
+        "userId": "b66f7878-8a71-4e1a-a4a4-d4dc57536429"
+      }
+    ]
+  }
+}
