@@ -85,3 +85,22 @@ Com a trava, um telefone genuinamente anômalo (que a canonicalização não con
 
 - Parte A: alteração no `parse_payment` do gateway via API do n8n, com **backup antes** e checagem de sintaxe (`node --check`), padrão dos scripts `g_*`.
 - Parte B: `ALTER TABLE` via psycopg2, após validar a pré-condição.
+
+---
+
+## Resultado (pós-implementação) — 2026-07-23
+
+Implementado e verificado (commits `f53e942`, `9e1192d`):
+
+**[1] Pontos de canonicalização** — os três aplicam a regra `com9`:
+- `normalize_phone` (entrada texto) ✅
+- `media_normalize_phone` (entrada mídia) ✅
+- `parse_payment` (escrita / gateway Asaas) ✅ ← *furo fechado nesta entrega*
+
+**[2] Buscas tolerantes** — `select_cliente` e `media_select_cliente` casam qualquer variante ✅
+
+**[3] Banco** — nenhum telefone BR fora do padrão: `clientes` 5/5, `conversas` 3/3, `campanhas` 48/48 ✅
+
+**[4] Trava** — constraint `clientes_telefone_canonico` ativa; testada: rejeita BR sem o 9, aceita canônico e internacional ✅
+
+**Nota sobre a auditoria por nó:** a primeira versão do auditor tentava rastrear a procedência do telefone nó a nó e produzia muito falso positivo — rastrear cadeias de `$json` estaticamente no n8n não é confiável. Isso se mostrou **desnecessário**: a CHECK constraint rejeita qualquer gravação fora do padrão, venha de qual nó vier. O `scripts/_audit_9digito.py` foi reescrito como um **guarda de invariante** (pontos de canonicalização + buscas tolerantes + estado do banco + constraint), com `exit code` 0/1 para rodar de forma automatizada.

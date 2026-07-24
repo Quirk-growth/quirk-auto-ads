@@ -1,80 +1,69 @@
 # scripts/_audit_9digito.py
-# Auditoria: TODOS os pontos onde o telefone e normalizado / buscado / gravado / usado
-# pra enviar, em TODOS os workflows — e quais ja canonicalizam o 9o digito.
-import json, re, n8n_api, psycopg2
+# Guarda do 9o digito. Checa o que e CONFIAVEL e importa:
+#   1) os pontos de canonicalizacao (entrada texto, entrada midia, escrita/gateway)
+#   2) as buscas tolerantes de cliente
+#   3) o invariante no banco (nenhum telefone BR sem o 9)
+#   4) a CHECK constraint ativa
+#
+# NAO tenta auditar no por no: rastrear a procedencia do telefone em cadeias de $json
+# no n8n nao e confiavel estaticamente. Isso e desnecessario porque a constraint rejeita
+# qualquer gravacao fora do padrao, venha de onde vier.
+#
+#   python3 _audit_9digito.py     -> sai 0 se tudo ok, 1 se algo regrediu
+import json, sys, n8n_api, psycopg2
 
-WFS = {
-    "fBUin1UPt5xJEp6g": "Quirk Auto Ads (principal)",
-    "2ZnZqb4wFous4uEs": "Webhook Gateway (Asaas)",
-    "aXuUHCG2YN2IVMN2": "Criar Cobranca",
-    "7vhoapaFk2zY8ptL": "WhatsApp Cloud Inbound",
-    "VgmLyPo5djHkUhLM": "Admin API",
-}
+ok = True
+print("=" * 70)
+print("GUARDA DO 9o DIGITO")
+print("=" * 70)
 
-def classify(name, params_json, node_type):
-    """Classifica o papel do no em relacao a telefone."""
-    p = params_json
-    roles = []
-    if "telefone_normalizado" in p and ("replace(" in p or "normalized" in p or "digits" in p):
-        roles.append("NORMALIZA")
-    if re.search(r"(SELECT|select).{0,200}?WHERE.{0,80}?telefone", p, re.S):
-        roles.append("BUSCA")
-    if re.search(r"(INSERT INTO|UPDATE)\s+auto_ads\.\w+", p) and "telefone" in p:
-        roles.append("GRAVA")
-    if '"to"' in p and "telefone" in p:
-        roles.append("ENVIA")
-    return roles
-
-print("=" * 78)
-print("AUDITORIA DO 9o DIGITO — pontos que tocam telefone")
-print("=" * 78)
-
-total_risco = []
-for wid, label in WFS.items():
+# 1) pontos de canonicalizacao
+print("\n[1] Pontos de canonicalizacao (devem aplicar a regra com9)")
+PONTOS = [
+    ("fBUin1UPt5xJEp6g", "normalize_phone",       "entrada TEXTO"),
+    ("fBUin1UPt5xJEp6g", "media_normalize_phone", "entrada MIDIA"),
+    ("2ZnZqb4wFous4uEs", "parse_payment",         "ESCRITA (gateway Asaas)"),
+]
+for wid, node, papel in PONTOS:
     try:
-        wf = n8n_api.get_workflow(wid)
+        jc = {n["name"]: n for n in n8n_api.get_workflow(wid)["nodes"]}[node]["parameters"].get("jsCode", "")
+        tem = ("com9(" in jc) or ("Canonicaliza BR" in jc)
+        print(f"  {'✅' if tem else '❌'} {node:<24} {papel}")
+        ok = ok and tem
     except Exception as e:
-        print(f"\n### {label} ({wid}) — ERRO: {e}"); continue
-    print(f"\n### {label}  ({wid})")
-    achou = False
-    for n in wf["nodes"]:
-        p = json.dumps(n.get("parameters", {}), ensure_ascii=False)
-        if "telefone" not in p and "phone" not in p.lower():
-            continue
-        roles = classify(n["name"], p, n["type"])
-        if not roles:
-            continue
-        achou = True
-        # canonicaliza?
-        canon = ("com9(" in p) or ("telefone_variantes" in p)
-        tolerante = "telefone IN (" in p or "telefone_variantes" in p
-        flag = "✅" if (canon or tolerante) else ("•" if "NORMALIZA" not in roles and "BUSCA" not in roles else "⚠️ ")
-        print(f"  {flag} {n['name']:<28} {'/'.join(roles):<22} canon={canon} tolerante={tolerante}")
-        if ("NORMALIZA" in roles or "BUSCA" in roles) and not (canon or tolerante):
-            total_risco.append((label, n["name"], "/".join(roles)))
-    if not achou:
-        print("   (nenhum no toca telefone)")
+        print(f"  ❌ {node:<24} erro: {str(e)[:50]}"); ok = False
 
-print("\n" + "=" * 78)
-print("PONTOS DE RISCO (normalizam ou buscam SEM canonicalizar/tolerar o 9):")
-if total_risco:
-    for w, n, r in total_risco:
-        print(f"  ⚠️  [{w}] {n}  ({r})")
-else:
-    print("  nenhum ✅")
+# 2) buscas tolerantes
+print("\n[2] Buscas de cliente (devem casar qualquer variante)")
+for wid, node in [("fBUin1UPt5xJEp6g", "select_cliente"), ("fBUin1UPt5xJEp6g", "media_select_cliente")]:
+    try:
+        p = json.dumps({n["name"]: n for n in n8n_api.get_workflow(wid)["nodes"]}[node]["parameters"], ensure_ascii=False)
+        tem = "telefone IN (" in p or "telefone_variantes" in p
+        print(f"  {'✅' if tem else '❌'} {node:<24} tolerante ao 9")
+        ok = ok and tem
+    except Exception as e:
+        print(f"  ❌ {node:<24} erro: {str(e)[:50]}"); ok = False
 
-# DB: formatos de telefone atuais
-print("\n" + "=" * 78)
-print("BANCO — formatos de telefone armazenados")
+# 3) invariante no banco
+print("\n[3] Banco — nenhum telefone BR fora do padrao canonico")
 u = open('/Users/renanreal/.config/n8n-quirk/supabase_url.txt').read().strip().replace('aws-0-', 'aws-1-')
 cur = psycopg2.connect(u).cursor()
 for t in ["clientes", "conversas", "campanhas"]:
-    try:
-        cur.execute(f"SELECT telefone, length(telefone) FROM auto_ads.{t}")
-        rows = cur.fetchall()
-        com9 = [r[0] for r in rows if r[1] == 13]
-        sem9 = [r[0] for r in rows if r[1] == 12]
-        outros = [r[0] for r in rows if r[1] not in (12, 13)]
-        print(f"  {t}: total={len(rows)} | com9(13)={len(com9)} | SEM9(12)={len(sem9)} {sem9[:3]} | outros={outros[:3]}")
-    except Exception as e:
-        print(f"  {t}: erro {e}")
+    cur.execute(f"""SELECT count(*) FROM auto_ads.{t}
+                    WHERE telefone ~ '^55' AND telefone !~ '^55[0-9]{{2}}9[0-9]{{8}}$'""")
+    fora = cur.fetchone()[0]
+    cur.execute(f"SELECT count(*) FROM auto_ads.{t}")
+    print(f"  {'✅' if fora == 0 else '❌'} {t:<12} total={cur.fetchone()[0]:<4} fora do padrao={fora}")
+    ok = ok and fora == 0
+
+# 4) constraint
+print("\n[4] Trava no banco")
+cur.execute("""SELECT 1 FROM pg_constraint
+               WHERE conrelid='auto_ads.clientes'::regclass AND conname='clientes_telefone_canonico'""")
+tem = cur.fetchone() is not None
+print(f"  {'✅' if tem else '❌'} constraint clientes_telefone_canonico {'ativa' if tem else 'AUSENTE'}")
+ok = ok and tem
+
+print("\n" + "=" * 70)
+print("RESULTADO: ✅ TUDO OK" if ok else "RESULTADO: ❌ REGRESSAO DETECTADA")
+sys.exit(0 if ok else 1)
