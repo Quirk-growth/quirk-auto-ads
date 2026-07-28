@@ -49,6 +49,12 @@ print("\n[6] Rede de segurança: erro de criação não vira loop mudo")
 cm = N["check_meta_results"]["parameters"].get("jsCode","")
 check("ok" in cm, "check_meta_results classifica resultado")
 
+print("\n[7] Lookups vazios não estancam a cadeia em silêncio")
+for nome in ["list_campanhas", "load_meta_token", "load_meta_token_criacao", "load_meta_token_revisao"]:
+    check(N[nome].get("alwaysOutputData") is True, f"{nome} tem alwaysOutputData")
+check("filter(r => r && r.campanha_id_db" in N["init_gestao"]["parameters"]["jsCode"],
+      "init_gestao filtra o item-sentinela (0 campanhas -> sem_campanhas)")
+
 print("\n" + "="*68)
 print("RESULTADO: ✅ TUDO OK" if ok else "RESULTADO: ❌ REGREDIU")
 sys.exit(0 if ok else 1)
