@@ -47,11 +47,14 @@ Em `build_gestao_confirmation_msg`, o texto do ramo de erro passa a oferecer o r
 - `is_transient":true`;
 - subcódigos transitórios conhecidos do Meta (`code":1`, `code":2`, `code":4`, `code":17`, `code":341`, `code":80004`).
 
-**2b. Retry que repete a mesma gestão.** Quando o resultado é `infra`, a mensagem vira:
-*"Deu um engasgo no Meta ⚙️ (nada de errado com seu pedido). Manda **TENTAR DE NOVO** daqui a 1 min que eu repito a alteração, ou CANCELAR."*
-O intent `TENTAR_DE_NOVO` (novo) só é válido quando o estado ainda tem a `gestao` da ação que falhou (o `reset_gestao` do caminho de erro passa a **preservar** `gestao` marcando `gestao.retry_pendente = true` em vez de apagar). Ele reentra direto em `execute_gestao_action` com a `gestao` guardada — repete geo/verba/pausar, sem passar pela criação. Se não houver `gestao.retry_pendente`, "tentar de novo" cai no fluxo normal (OUTRO) e o agente responde de forma neutra.
+**2b. Retry que repete a mesma gestão — reusando o caminho que já existe.**
+Hoje `reset_gestao` (um nó Postgres na cadeia linear) roda no sucesso **e** no erro, e sempre faz `gestao = null` + `etapa_atual = 'ativa'` (essa segunda parte é, aliás, o que envenenou o estado no bug 1). A mudança: `prep_update_db` calcula `manter_gestao = (!ok && classe === 'infra')`, e `reset_gestao` fica condicional:
+- `manter_gestao` verdadeiro → **não toca** no `estado_json` (mantém `gestao` com `passo:'confirmacao'`, `selecionada`, `novo_valor`).
+- senão → limpa como hoje.
 
-Erro de `dado` (ex.: cidade inexistente) continua pedindo o dado corrigido, com o `motivo_usuario` legível já implementado no commit `e327359`.
+Com a gestão preservada, o cliente ainda está "em gestão" (passo confirmação). A mensagem de erro `infra` vira: *"⚙️ Deu um engasgo no Meta (nada de errado com seu pedido). Manda **SIM** de novo daqui a 1 min que eu repito, ou **CANCELAR**."* O "SIM" reentra pelo `process_gestao_step` (passo `confirmacao` → `acao:'executa'`) e re-executa `execute_gestao_action` com o `novo_valor` guardado — repete geo/verba/pausar, **sem criar nada** e **sem intent novo**. "CANCELAR" já é tratado pelo `process_gestao_step`.
+
+Erro de `dado` (ex.: cidade inexistente) limpa a gestão e pede o dado corrigido, com o `motivo_usuario` legível já implementado no commit `e327359`.
 
 ## Parte 3 — Conversa fluida: perguntar antes de trocar
 
