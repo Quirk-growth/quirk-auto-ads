@@ -55,6 +55,13 @@ for nome in ["list_campanhas", "load_meta_token", "load_meta_token_criacao", "lo
 check("filter(r => r && r.campanha_id_db" in N["init_gestao"]["parameters"]["jsCode"],
       "init_gestao filtra o item-sentinela (0 campanhas -> sem_campanhas)")
 
+print("\n[8] Roteador universal não dropa cliente com status inesperado")
+check(N["switch_status"]["parameters"].get("options", {}).get("fallbackOutput") == "extra",
+      "switch_status tem fallback (extra)")
+check("send_status_desconhecido" in N and len(conns.get("switch_status", {}).get("main", [])) > 6
+      and conns["switch_status"]["main"][6] and conns["switch_status"]["main"][6][0]["node"] == "send_status_desconhecido",
+      "fallback -> send_status_desconhecido (resposta em vez de silêncio)")
+
 print("\n" + "="*68)
 print("RESULTADO: ✅ TUDO OK" if ok else "RESULTADO: ❌ REGREDIU")
 sys.exit(0 if ok else 1)
