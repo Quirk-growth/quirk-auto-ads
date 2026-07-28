@@ -62,6 +62,19 @@ check("send_status_desconhecido" in N and len(conns.get("switch_status", {}).get
       and conns["switch_status"]["main"][6] and conns["switch_status"]["main"][6][0]["node"] == "send_status_desconhecido",
       "fallback -> send_status_desconhecido (resposta em vez de silêncio)")
 
+print("\n[9] Isolamento multi-tenant: asset é único por cliente")
+try:
+    import psycopg2
+    u = open('/Users/renanreal/.config/n8n-quirk/supabase_url.txt').read().strip().replace('aws-0-', 'aws-1-')
+    dcur = psycopg2.connect(u).cursor()
+    dcur.execute("""SELECT indexname FROM pg_indexes WHERE schemaname='auto_ads' AND tablename='clientes'
+                    AND indexname IN ('clientes_ad_account_id_uniq','clientes_page_id_uniq')""")
+    idx = {r[0] for r in dcur.fetchall()}
+    check("clientes_ad_account_id_uniq" in idx, "índice único em ad_account_id")
+    check("clientes_page_id_uniq" in idx, "índice único em page_id")
+except Exception as e:
+    check(False, f"não consegui checar índices: {str(e)[:50]}")
+
 print("\n" + "="*68)
 print("RESULTADO: ✅ TUDO OK" if ok else "RESULTADO: ❌ REGREDIU")
 sys.exit(0 if ok else 1)
